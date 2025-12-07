@@ -44,10 +44,10 @@ class MainWindow(QMainWindow):
 
         # Butonları Ekleme Fonksiyonu
         self.create_menu_item("Ana Sayfa", 0)
-        self.create_menu_item("Takvim & Planlama", 1)
-        self.create_menu_item("Oyunlar (Repertuvar)", 2)
-        self.create_menu_item("Personel & Finans", 3)
-        self.create_menu_item("Sahneler & Mekanlar", 4)
+        self.create_menu_item("Takvim", 1)
+        self.create_menu_item("Oyunlar", 2)
+        self.create_menu_item("Oyuncu ve Teknik", 3)
+        self.create_menu_item("Sahneler", 4)
 
         self.sidebar_layout.addStretch()  # Butonları yukarı it
 

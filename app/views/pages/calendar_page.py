@@ -1,14 +1,14 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QTableWidget, QTableWidgetItem, QHeaderView,
                              QAbstractItemView, QDialog, QFormLayout, QComboBox,
-                             QTimeEdit, QLineEdit, QListWidget, QListWidgetItem,
+                             QTimeEdit, QLineEdit, QListWidget, QListWidgetItem, QFileDialog,
                              QFrame, QMessageBox, QSizePolicy, QScrollArea) # QMessageBox burada olmalı
 
 from PyQt5.QtCore import Qt, QDate, QRect, QTime # QTime burada olmalı
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QTextDocument, QPageSize, QPageLayout
 from app.controllers.calendar_controller import CalendarController
-
-
+from PyQt5.QtPrintSupport import QPrinter # PDF yazdırmak için gerekli
+from itertools import groupby
 # =============================================================================
 # 1. POPUP PENCERE (Ekleme ve Düzenleme İşlemleri Burada)
 # =============================================================================
@@ -181,12 +181,18 @@ class EventDialog(QDialog):
         elif self.combo_city.count() > 0:
             self.combo_city.setCurrentIndex(0)
 
-        # Reji Adaylarını Yükle
-        self.combo_crew.clear()
-        crew = self.controller.get_crew_candidates()
-        for c in crew:
-            self.combo_crew.addItem(c['ad_soyad'], c['id'])
-        self.update_actor_candidates()
+            # --- BURASI DEĞİŞTİ (Reji Listesi) ---
+            self.combo_crew.clear()
+            # Seçili tarihi string'e çevirip gönderiyoruz
+            current_date_str = self.selected_date.toString("yyyy-MM-dd")
+            crew = self.controller.get_crew_candidates(date_str=current_date_str)
+
+            for c in crew:
+                self.combo_crew.addItem(c['ad_soyad'], c['id'])
+            # -------------------------------------
+
+            if self.combo_play.count() > 0: self.combo_play.setCurrentIndex(0)
+            self.update_actor_candidates()
     def on_city_changed(self, city):
         self.combo_venue.clear()
         if not city: return
@@ -202,18 +208,23 @@ class EventDialog(QDialog):
 
     def update_actor_candidates(self):
         self.combo_actors.clear()
-
         play_id = self.combo_play.currentData()
-        current_city = self.combo_city.currentText()  # Şehir ismini al
-
+        current_city = self.combo_city.currentText()
         if not play_id: return
 
-        # Mantığı Controller'a bıraktık, sadece şehri gönderiyoruz
-        actors = self.controller.get_cast_candidates(play_id, city_name=current_city)
+        # --- BURASI DEĞİŞTİ (Tarih eklendi) ---
+        current_date_str = self.selected_date.toString("yyyy-MM-dd")
+
+        actors = self.controller.get_cast_candidates(
+            play_id,
+            city_name=current_city,
+            date_str=current_date_str
+        )
+        # --------------------------------------
 
         for a in actors:
-            item_text = f"{a['ad_soyad']} ({a['durum']})"
-            self.combo_actors.addItem(item_text, a['id'])
+            self.combo_actors.addItem(f"{a['ad_soyad']} ({a['durum']})", a['id'])
+
     def add_actor(self):
         if self.combo_actors.currentIndex() == -1: return
         name = self.combo_actors.currentText()
@@ -245,74 +256,105 @@ class EventDialog(QDialog):
 
     # --- DÜZENLEME MODU (CRASH FIX İÇERİR) ---
     def load_data(self):
-        print(">>> load_data BAŞLADI")  # 1. Kontrol
         data = self.controller.get_event_full_detail(self.event_id)
         if not data: return
 
-        print(">>> Sinyaller bloklanıyor...")
+        # --- 1. Sinyalleri Durdur (Çökmeyi Önle) ---
         self.combo_play.blockSignals(True)
         self.combo_city.blockSignals(True)
         self.combo_venue.blockSignals(True)
 
         try:
-            # 1. Oyun Seç
-            print(f">>> Oyun Seçiliyor: ID {data['oyun_id']}")
+            # Oyun Seçimi
             idx_play = self.combo_play.findData(data['oyun_id'])
             if idx_play != -1: self.combo_play.setCurrentIndex(idx_play)
 
-            # 2. Şehri Bul ve Seç
-            venue_city = self.controller.get_city_of_venue(data['sahne_id'])
-            print(f">>> Şehir Bulundu: {venue_city}")
-
-            if venue_city:
-                print(">>> Şehir Combobox Ayarlanıyor...")
-                self.combo_city.setCurrentText(venue_city)
-
-                print(">>> Sahneler Manuel Dolduruluyor...")
+            # Şehir ve Sahne Seçimi
+            city = self.controller.get_city_of_venue(data['sahne_id'])
+            if city:
+                self.combo_city.setCurrentText(city)
+                # Sahneleri manuel doldur
                 self.combo_venue.clear()
-                venues = self.controller.get_venues_by_city(venue_city)
+                venues = self.controller.get_venues_by_city(city)
                 for v in venues:
                     self.combo_venue.addItem(v['sahne_adi'], v['id'])
 
-                print(f">>> Sahne Seçiliyor: ID {data['sahne_id']}")
                 idx_venue = self.combo_venue.findData(data['sahne_id'])
                 if idx_venue != -1: self.combo_venue.setCurrentIndex(idx_venue)
 
+            # Saat ve Not
             self.time_edit.setTime(QTime.fromString(data['baslangic_saati'], "HH:mm"))
             self.input_note.setText(data['notlar'])
-            self.update_actor_candidates()
-        except Exception as e:
-            print(f"!!! HATA OLUŞTU: {e}")  # Hata varsa buraya düşer
 
         finally:
-            print(">>> Sinyaller Geri Açılıyor...")
+            # --- 2. Sinyalleri Tekrar Aç ---
             self.combo_play.blockSignals(False)
             self.combo_city.blockSignals(False)
             self.combo_venue.blockSignals(False)
 
-        print(">>> load_data BİTTİ")
+        # Aday oyuncu listesini (combobox) güncelle
+        self.update_actor_candidates()
+
+        # --- 3. EKSİK OLAN KISIM: KAYITLI KADROYU LİSTEYE GERİ YÜKLE ---
+
+        # A. Oyuncuları Yükle
+        self.list_actors.clear()
+        actor_ids = self.controller.get_event_cast_ids(self.event_id, "Oyuncu")
+        for a_id in actor_ids:
+            name = self.controller.get_person_name(a_id)
+            item = QListWidgetItem(name)
+            item.setData(Qt.UserRole, a_id)
+            self.list_actors.addItem(item)
+
+        # B. Rejiyi Yükle
+        self.list_crew.clear()
+        crew_ids = self.controller.get_event_cast_ids(self.event_id, "Reji")
+        for c_id in crew_ids:
+            name = self.controller.get_person_name(c_id)
+            item = QListWidgetItem(name)
+            item.setData(Qt.UserRole, c_id)
+            self.list_crew.addItem(item)
     def save_event(self):
         play_id = self.combo_play.currentData()
         venue_id = self.combo_venue.currentData()
+
         if not play_id or not venue_id:
-            QMessageBox.warning(self, "Eksik", "Oyun ve Sahne seçiniz.")
+            QMessageBox.warning(self, "Eksik", "Lütfen Oyun ve Sahne seçiniz.")
             return
 
-        actor_ids = [self.list_actors.item(i).data(Qt.UserRole) for i in range(self.list_actors.count())]
-        crew_ids = [self.list_crew.item(i).data(Qt.UserRole) for i in range(self.list_crew.count())]
+        # --- VERİ TOPLAMA (Burayı Garantiye Alıyoruz) ---
+        actor_ids = []
+        for i in range(self.list_actors.count()):
+            item = self.list_actors.item(i)
+            # Veri var mı diye kontrol et, yoksa hata vermesin
+            if item.data(Qt.UserRole) is not None:
+                actor_ids.append(item.data(Qt.UserRole))
+
+        crew_ids = []
+        for i in range(self.list_crew.count()):
+            item = self.list_crew.item(i)
+            if item.data(Qt.UserRole) is not None:
+                crew_ids.append(item.data(Qt.UserRole))
+        # -----------------------------------------------
 
         date_str = self.selected_date.toString("yyyy-MM-dd")
         time_str = self.time_edit.text()
         note = self.input_note.text()
 
         if self.event_id:
-            self.controller.update_event_with_cast(self.event_id, play_id, venue_id, date_str, time_str, note,
-                                                   actor_ids, crew_ids)
+            # GÜNCELLEME
+            self.controller.update_event_with_cast(
+                self.event_id, play_id, venue_id, date_str, time_str, note,
+                actor_ids, crew_ids
+            )
         else:
-            self.controller.add_event_with_cast(play_id, venue_id, date_str, time_str, note, actor_ids, crew_ids)
+            # YENİ KAYIT
+            self.controller.add_event_with_cast(
+                play_id, venue_id, date_str, time_str, note,
+                actor_ids, crew_ids
+            )
 
-        self.accept()
-
+        self.accept()  # Pencereyi kapat
     def delete_event(self):
         try:
             reply = QMessageBox.question(self, 'Sil', 'Bu etkinliği silmek istiyor musunuz?',
@@ -324,10 +366,6 @@ class EventDialog(QDialog):
             print(f"Silme Hatası: {e}")
             # Eğer QMessageBox import edilmemişse konsola yazsın, kapanmasın.
 
-
-# =============================================================================
-# 2. ANA TAKVİM SAYFASI (GRID GÖRÜNÜMÜ)
-# =============================================================================
 class CalendarPage(QWidget):
     def __init__(self):
         super().__init__()
@@ -338,13 +376,19 @@ class CalendarPage(QWidget):
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(15)  # Elemanlar arası boşluk
 
-        # --- HEADER ---
+        # --- 1. HEADER (Ay ve Yıl Değiştirme) ---
         header_layout = QHBoxLayout()
 
         self.btn_prev = QPushButton("< Önceki Ay")
         self.btn_prev.clicked.connect(self.prev_month)
-        self.btn_prev.setFixedWidth(100)
+        self.btn_prev.setFixedWidth(120)
+        self.btn_prev.setCursor(Qt.PointingHandCursor)
+        self.btn_prev.setStyleSheet("""
+            QPushButton { background-color: #333; color: white; border: none; padding: 5px; border-radius: 4px; }
+            QPushButton:hover { background-color: #444; }
+        """)
 
         self.lbl_month = QLabel()
         self.lbl_month.setStyleSheet("font-size: 24px; font-weight: bold; color: #FFD700;")
@@ -352,7 +396,12 @@ class CalendarPage(QWidget):
 
         self.btn_next = QPushButton("Sonraki Ay >")
         self.btn_next.clicked.connect(self.next_month)
-        self.btn_next.setFixedWidth(100)
+        self.btn_next.setFixedWidth(120)
+        self.btn_next.setCursor(Qt.PointingHandCursor)
+        self.btn_next.setStyleSheet("""
+            QPushButton { background-color: #333; color: white; border: none; padding: 5px; border-radius: 4px; }
+            QPushButton:hover { background-color: #444; }
+        """)
 
         header_layout.addWidget(self.btn_prev)
         header_layout.addWidget(self.lbl_month)
@@ -360,7 +409,40 @@ class CalendarPage(QWidget):
 
         layout.addLayout(header_layout)
 
-        # --- GRID TAKVİM ---
+        # --- 2. AKSİYON BUTONLARI (OTOMATİK DOLDUR + PDF) ---
+        action_layout = QHBoxLayout()
+        action_layout.setSpacing(20)
+
+        # Otomatik Doldur Butonu (Mor)
+        self.btn_auto = QPushButton("⚡ Otomatik Doldur")
+        self.btn_auto.setCursor(Qt.PointingHandCursor)
+        self.btn_auto.setFixedHeight(40)
+        self.btn_auto.setFixedWidth(180)
+        self.btn_auto.setStyleSheet("""
+            QPushButton { background-color: #8e44ad; color: white; font-weight: bold; border-radius: 8px; font-size: 13px; }
+            QPushButton:hover { background-color: #9b59b6; }
+        """)
+        self.btn_auto.clicked.connect(self.run_auto_fill)
+
+        # PDF İndir Butonu (Kırmızı)
+        self.btn_pdf = QPushButton("📄 Programı PDF İndir")
+        self.btn_pdf.setCursor(Qt.PointingHandCursor)
+        self.btn_pdf.setFixedHeight(40)
+        self.btn_pdf.setFixedWidth(180)
+        self.btn_pdf.setStyleSheet("""
+            QPushButton { background-color: #e74c3c; color: white; font-weight: bold; border-radius: 8px; font-size: 13px; }
+            QPushButton:hover { background-color: #c0392b; }
+        """)
+        self.btn_pdf.clicked.connect(self.export_to_pdf)
+
+        action_layout.addStretch()  # Sola boşluk
+        action_layout.addWidget(self.btn_auto)
+        action_layout.addWidget(self.btn_pdf)
+        action_layout.addStretch()  # Sağa boşluk
+
+        layout.addLayout(action_layout)
+
+        # --- 3. GRID TAKVİM ---
         self.grid = QTableWidget()
         self.grid.setColumnCount(7)
         self.grid.setRowCount(6)
@@ -374,15 +456,26 @@ class CalendarPage(QWidget):
         self.grid.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.grid.setSelectionMode(QAbstractItemView.NoSelection)
         self.grid.setFocusPolicy(Qt.NoFocus)
+
+        # Takvim Stili
         self.grid.setStyleSheet("""
             QTableWidget { background-color: #121212; border: none; gridline-color: #333; }
-            QHeaderView::section { background-color: #1e1e1e; color: #aaa; border: 1px solid #333; padding: 10px; font-weight: bold; }
+            QHeaderView::section { 
+                background-color: #1e1e1e; 
+                color: #aaa; 
+                border: 1px solid #333; 
+                padding: 10px; 
+                font-weight: bold; 
+            }
         """)
 
         self.grid.cellDoubleClicked.connect(self.on_cell_double_clicked)
 
         layout.addWidget(self.grid)
+
+        # Takvimi ilk kez yükle
         self.refresh_calendar()
+
 
     def refresh_calendar(self):
         year = self.current_date.year()
@@ -541,3 +634,203 @@ class CalendarPage(QWidget):
         dialog = EventDialog(self, date=date_obj, event_id=event_id)
         if dialog.exec_():
             self.refresh_calendar()
+
+    def run_auto_fill(self):
+        reply = QMessageBox.question(
+            self, 'Otomatik Doldur',
+            'Oyuncusu atanmamış TÜM oyunlara, belirlediğiniz kurallara göre (Turne, Maaş, Müsaitlik) '
+            'otomatik oyuncu atanacak.\n\nDevam etmek istiyor musunuz?',
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            filled_count, failed_list = self.controller.auto_fill_schedule()
+
+            msg = f"✅ İşlem Tamamlandı!\n\nToplam {filled_count} etkinliğe oyuncu atandı."
+
+            if failed_list:
+                msg += "\n\n⚠️ Aşağıdaki oyunlara uygun oyuncu BULUNAMADI:\n"
+                # İlk 10 tanesini göster, liste çok uzunsa boğmasın
+                msg += "\n".join(failed_list[:10])
+                if len(failed_list) > 10:
+                    msg += f"\n... ve {len(failed_list) - 10} tane daha."
+
+            QMessageBox.information(self, "Sonuç", msg)
+            self.refresh_calendar()  # Takvimi yenile ki dolanları görelim
+
+    def export_to_pdf(self):
+        import os  # Dosya yolları ve açma işlemi için gerekli
+
+        # 1. Verileri Hazırla
+        year = self.current_date.year()
+        month = self.current_date.month()
+
+        tr_months = {
+            1: "OCAK", 2: "ŞUBAT", 3: "MART", 4: "NİSAN", 5: "MAYIS", 6: "HAZİRAN",
+            7: "TEMMUZ", 8: "AĞUSTOS", 9: "EYLÜL", 10: "EKİM", 11: "KASIM", 12: "ARALIK"
+        }
+
+        tr_days = {
+            1: "PAZARTESİ", 2: "SALI", 3: "ÇARŞAMBA", 4: "PERŞEMBE", 5: "CUMA", 6: "CUMARTESİ", 7: "PAZAR"
+        }
+
+        month_name = f"{tr_months[month]} {year}"
+        events = self.controller.get_events_for_month(year, month)
+
+        if not events:
+            QMessageBox.warning(self, "Uyarı", "Bu ay için kayıtlı etkinlik bulunamadı.")
+            return
+
+        # Sıralama: Tarih -> Şehir -> Saat
+        events.sort(key=lambda x: (x['tarih'], x['sehir'], x['baslangic_saati']))
+
+        # 2. Dosya Kaydetme (Hedef: Masaüstü)
+        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+        default_filename = os.path.join(desktop_path, f"{month_name.replace(' ', '_')}_Programi.pdf")
+
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Programı Kaydet", default_filename, "PDF Dosyası (*.pdf)"
+        )
+
+        if not filename:
+            return
+
+            # 3. HTML Tasarımı (Net Tablo Görünümü)
+        html_content = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; font-size: 10px; color: #000; }}
+                h1 {{ text-align: center; margin-bottom: 10px; font-size: 18px; text-transform: uppercase; }}
+
+                /* Gün Başlığı */
+                .day-header {{ 
+                    background-color: #000; 
+                    color: #fff; 
+                    padding: 8px; 
+                    font-size: 14px; 
+                    font-weight: bold; 
+                    margin-top: 25px; 
+                    border: 1px solid #000;
+                    text-align: left;
+                }}
+
+                /* Tablo Ayarları */
+                table {{ 
+                    width: 100%; 
+                    border-collapse: collapse; /* Çizgileri yapıştır */
+                    margin-bottom: 0px; 
+                }}
+
+                /* Başlıklar */
+                th {{ 
+                    background-color: #eee; 
+                    color: #000; 
+                    padding: 8px; 
+                    font-weight: bold; 
+                    border: 1px solid #000; 
+                    text-align: center;
+                }}
+
+                /* Hücreler - NET ÇİZGİLER */
+                td {{ 
+                    padding: 8px; 
+                    text-align: center; 
+                    vertical-align: middle;
+                    border: 1px solid #000; /* İnce Siyah Çizgi */
+                    color: #000;
+                }}
+
+                /* Şehir Değişiminde KALIN Çizgi */
+                /* border-top kullanarak değişimin olduğu satırın üstünü kalınlaştırıyoruz */
+                .city-divider td {{
+                    border-top: 3px solid #000 !important; 
+                }}
+            </style>
+        </head>
+        <body>
+            <h1>🎭 {month_name} OYUN PROGRAMI</h1>
+        """
+
+        # --- Gruplama ve Döngü ---
+        from itertools import groupby
+
+        for date_str, day_events_iter in groupby(events, key=lambda x: x['tarih']):
+            day_events = list(day_events_iter)
+
+            # Gün Başlığı
+            date_obj = QDate.fromString(date_str, "yyyy-MM-dd")
+            formatted_date = date_obj.toString("dd.MM.yyyy")
+            day_name = tr_days[date_obj.dayOfWeek()]
+
+            html_content += f"""
+            <div class='day-header'>{formatted_date} - {day_name}</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="10%">SAAT</th>
+                        <th width="25%">ŞEHİR / SAHNE</th>
+                        <th width="35%">OYUN ADI</th>
+                        <th width="30%">KADRO</th>
+                    </tr>
+                </thead>
+                <tbody>
+            """
+
+            previous_city = None
+
+            for ev in day_events:
+                current_city = ev['sehir'].strip()
+                row_class = ""
+
+                # Eğer şehir değiştiyse ve bu tablonun ilk satırı değilse -> Kalın Çizgi
+                if previous_city and current_city != previous_city:
+                    row_class = "city-divider"
+
+                oyuncular = ev.get('oyuncu_listesi', '-')
+
+                html_content += f"""
+                <tr class="{row_class}">
+                    <td style="font-weight:bold;">{ev['baslangic_saati']}</td>
+                    <td style="text-align:left;">
+                        <b>{ev['sehir']}</b><br>
+                        <span style="font-size:9px;">{ev['sahne_adi']}</span>
+                    </td>
+                    <td style="font-weight:bold; text-transform: uppercase;">
+                        {ev['oyun_adi']}
+                    </td>
+                    <td style="text-align:left; font-size:10px;">
+                        {oyuncular}
+                    </td>
+                </tr>
+                """
+                previous_city = current_city
+
+            html_content += """
+                </tbody>
+            </table>
+            """
+
+        html_content += """
+        </body>
+        </html>
+        """
+
+        # 4. Yazdırma
+        document = QTextDocument()
+        document.setHtml(html_content)
+
+        printer = QPrinter()
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName(filename)
+        printer.setPageSize(QPageSize(QPageSize.A4))
+        printer.setPageMargins(10, 10, 10, 10, QPrinter.Millimeter)
+
+        document.print_(printer)
+
+        # 5. Dosyayı Otomatik Aç
+        try:
+            os.startfile(filename)  # Windows için dosyayı açar
+        except Exception as e:
+            print(f"Dosya açılamadı: {e}")
+            QMessageBox.information(self, "Başarılı", f"PDF kaydedildi:\n{filename}")

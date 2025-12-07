@@ -5,22 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6d5319fe-1f09-43a9-9a3e-28501131a9dc" name="Changes" comment="GİT">
-      <change afterPath="$PROJECT_DIR$/app/controllers/calendar_controller.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/home_controller.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/personel_controller.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/play_controller.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/venue_controller.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/main_window.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/pages/actors_page.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/pages/calendar_page.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/pages/home_page.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/pages/plays_page.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/pages/venues_page.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/styles.qss" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dbolustur.py" beforeDir="false" afterPath="$PROJECT_DIR$/dbolustur.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tiyatrodb.db" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,6 +22,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;korkmazcagri&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/korkmazcagri/tiyatroPlan&quot;,
+    &quot;accountId&quot;: &quot;3f090e49-ebd4-4937-9571-dab8c9bea369&quot;
+  }
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5
 }</component>
@@ -48,21 +45,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.actors_page.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dbolustur.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.actors_page.executor": "Run",
+    "Python.dbolustur.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "C:/Users/cagri/PycharmProjects/PyAutoGui Deneme",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\cagri\tiyatro\tiyatro\app\views\pages" />
@@ -117,6 +115,9 @@
       <updated>1764607932531</updated>
       <workItem from="1764607933911" duration="5889000" />
       <workItem from="1764707945906" duration="5923000" />
+      <workItem from="1764964021131" duration="14000" />
+      <workItem from="1764964882782" duration="3000" />
+      <workItem from="1764964949846" duration="17000" />
     </task>
     <task id="LOCAL-00001" summary="GİT">
       <option name="closed" value="true" />

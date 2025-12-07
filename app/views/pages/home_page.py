@@ -22,7 +22,7 @@ class HomePage(QWidget):
         title.setStyleSheet("font-size: 28px; font-weight: bold; color: #FFD700;")
         main_layout.addWidget(title)
 
-        subtitle = QLabel("Genel durum özeti ve yaklaşan temsiller aşağıdadır.")
+        subtitle = QLabel("Genel durum özeti ve yaklaşan oyunlar aşağıdadır.")
         subtitle.setStyleSheet("font-size: 16px; color: #aaa; margin-bottom: 20px;")
         main_layout.addWidget(subtitle)
 
@@ -32,7 +32,7 @@ class HomePage(QWidget):
 
         self.card_personel = self.create_info_card("Toplam Personel", "0")
         self.card_oyun = self.create_info_card("Aktif Oyunlar", "0")
-        self.card_etkinlik = self.create_info_card("Yaklaşan Temsiller", "0")
+        self.card_etkinlik = self.create_info_card("Yaklaşan Oyunlar", "0")
 
         cards_layout.addWidget(self.card_personel)
         cards_layout.addWidget(self.card_oyun)

@@ -82,7 +82,7 @@ class PlaysPage(QWidget):
         self.spin_sure.setValue(40)  # Varsayılan 40 dk
         self.spin_sure.setSuffix(" Dakika")
 
-        self.check_aktif = QCheckBox("Bu Oyun Aktif (Repertuvarda)")
+        self.check_aktif = QCheckBox("Aktif")
         self.check_aktif.setChecked(True)
 
         form_layout.addRow("Oyun Adı:", self.input_ad)

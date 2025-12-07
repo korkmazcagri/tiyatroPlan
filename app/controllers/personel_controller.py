@@ -1,7 +1,40 @@
-from app.core.db import execute_query
+from app.core.db import execute_query, get_db_connection
 
 
 class PersonelController:
+    def __init__(self):
+        # Controller başlatıldığında tabloları kontrol et
+        self.init_availability_tables()
+
+    def init_availability_tables(self):
+        """Müsaitlik tabloları yoksa oluşturur (EKSİK OLAN KISIMDI)."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Haftalık Rutin Tablosu
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS musaitlik_haftalik (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                kisi_id INTEGER,
+                gun_index INTEGER,
+                durum TEXT,
+                UNIQUE(kisi_id, gun_index)
+            )
+        """)
+
+        # İstisna Tarihler Tablosu
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS musaitlik_istisna (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                kisi_id INTEGER,
+                tarih TEXT,
+                aciklama TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+    # --- STANDART PERSONEL İŞLEMLERİ ---
     @staticmethod
     def get_all_personel():
         """Tüm personeli getirir."""
@@ -10,7 +43,7 @@ class PersonelController:
 
     @staticmethod
     def search_personel(name_filter=""):
-        """Personel adına göre arama yapar (YENİ)."""
+        """Personel adına göre arama yapar."""
         query = "SELECT * FROM kisiler WHERE ad_soyad LIKE ? ORDER BY ad_soyad ASC"
         return execute_query(query, (f"%{name_filter}%",))
 
@@ -109,3 +142,71 @@ class PersonelController:
     def remove_game_from_personel(repertuvar_id):
         query = "DELETE FROM oyuncu_repertuvari WHERE id = ?"
         execute_query(query, (repertuvar_id,), commit=True)
+
+    # --- TEMSİL GEÇMİŞİ ---
+    @staticmethod
+    def get_person_event_history(person_id):
+        """Kişinin görev aldığı (Oyuncu veya Reji) tüm etkinlikleri getirir."""
+        query = """
+                SELECT e.tarih, e.baslangic_saati, o.oyun_adi, s.sahne_adi, ek.gorev
+                FROM etkinlik_kadrosu ek
+                JOIN etkinlikler e ON ek.etkinlik_id = e.id
+                JOIN oyunlar o ON e.oyun_id = o.id
+                JOIN sahneler s ON e.sahne_id = s.id
+                WHERE ek.kisi_id = ?
+                ORDER BY e.tarih DESC, e.baslangic_saati ASC
+            """
+        return execute_query(query, (person_id,))
+
+    # --- MÜSAİTLİK (AVAILABILITY) - BU BÖLÜM EKSİKTİ ---
+    @staticmethod
+    def get_weekly_routine(person_id):
+        rows = execute_query("SELECT gun_index, durum FROM musaitlik_haftalik WHERE kisi_id = ?", (person_id,))
+        return {row['gun_index']: row['durum'] for row in rows}
+
+    @staticmethod
+    def save_weekly_routine(person_id, weekly_data):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            for day_idx, status in weekly_data.items():
+                cursor.execute("""
+                    INSERT INTO musaitlik_haftalik (kisi_id, gun_index, durum) VALUES (?, ?, ?)
+                    ON CONFLICT(kisi_id, gun_index) DO UPDATE SET durum=excluded.durum
+                """, (person_id, day_idx, status))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            print(e)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_exceptions(person_id):
+        return execute_query("SELECT * FROM musaitlik_istisna WHERE kisi_id = ? ORDER BY tarih ASC", (person_id,))
+
+    @staticmethod
+    def add_exception(person_id, date_str, desc):
+        execute_query("INSERT INTO musaitlik_istisna (kisi_id, tarih, aciklama) VALUES (?, ?, ?)",
+                      (person_id, date_str, desc), commit=True)
+
+    @staticmethod
+    def delete_exception(exc_id):
+        execute_query("DELETE FROM musaitlik_istisna WHERE id = ?", (exc_id,), commit=True)
+
+    @staticmethod
+    def check_if_person_has_event(person_id, date_str):
+        """Kişinin belirtilen tarihte bir oyunu veya görevi var mı bakar."""
+        query = """
+                    SELECT e.tarih, o.oyun_adi 
+                    FROM etkinlik_kadrosu ek
+                    JOIN etkinlikler e ON ek.etkinlik_id = e.id
+                    JOIN oyunlar o ON e.oyun_id = o.id
+                    WHERE ek.kisi_id = ? AND e.tarih = ?
+                """
+        result = execute_query(query, (person_id, date_str))
+        # Eğer kayıt varsa True ve oyun adını döndür, yoksa False
+        if result:
+            return True, result[0]['oyun_adi']
+        else:
+            return False, None

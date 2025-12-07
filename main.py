@@ -3,7 +3,6 @@ import os
 from PyQt5.QtWidgets import QApplication
 from app.views.main_window import MainWindow
 
-
 def load_stylesheet(app):
     """CSS dosyasını yükler"""
     try:
