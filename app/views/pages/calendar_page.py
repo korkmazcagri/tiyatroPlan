@@ -137,16 +137,25 @@ class EventDialog(QDialog):
         layout.addLayout(cast_layout)
 
         # Alt Butonlar
+        # Alt Butonlar
         btn_box = QHBoxLayout()
 
         if self.event_id:
+            # --- [EKLENMESİ GEREKEN KISIM BURASI] ---
+            # 1. Durum Butonunu Tanımla
+            self.btn_status = QPushButton("Durum")  # İlk başta geçici metin
+            self.btn_status.clicked.connect(self.toggle_event_status)
+            self.btn_status.setFixedWidth(160)  # Genişlik ayarı
+            btn_box.addWidget(self.btn_status)  # Kutuya ekle
+            # ----------------------------------------
+
+            # 2. Sil Butonu (Zaten vardı)
             self.btn_delete = QPushButton("Etkinliği Sil")
             self.btn_delete.setObjectName("btn_delete")
             self.btn_delete.clicked.connect(self.delete_event)
             btn_box.addWidget(self.btn_delete)
 
         btn_box.addStretch()
-
         self.btn_cancel = QPushButton("İptal")
         self.btn_cancel.setStyleSheet("background-color: #444; color: white;")
         self.btn_cancel.clicked.connect(self.reject)
@@ -161,38 +170,75 @@ class EventDialog(QDialog):
         # İlk Yükleme
         self.load_initial_data()
 
+    def toggle_event_status(self):
+        if self.current_status == 'Oynandı':
+            # Geri alıyoruz
+            reply = QMessageBox.question(
+                self, 'Durum Değiştir',
+                'Bu etkinliği "Oynanmadı" (Planlandı) durumuna geri almak istiyor musunuz?\n\n'
+                'Dikkat: Varsa finans kayıtları silinmez, sadece durum etiketi değişir.',
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                self.controller.update_event_status(self.event_id, 'Planlandı')
+                self.btn_status.setText("✔️ Oynandı İşaretle")
+                self.btn_status.setStyleSheet(
+                    "background-color: #27ae60; color: white; font-weight: bold; padding: 8px;")
+                self.current_status = 'Planlandı'
+
+        else:
+            # Oynandı yapıyoruz
+            reply = QMessageBox.question(
+                self, 'Durum Değiştir',
+                'Bu etkinliği "Oynandı" olarak işaretlemek istiyor musunuz?',
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                self.controller.update_event_status(self.event_id, 'Oynandı')
+                self.btn_status.setText("↩️ Oynanmadı Yap")
+                self.btn_status.setStyleSheet(
+                    "background-color: #e67e22; color: white; font-weight: bold; padding: 8px;")
+                self.current_status = 'Oynandı'
     # --- VERİ YÖNETİMİ ---
     def load_initial_data(self):
-        # Oyunları Yükle
+        # 1. Oyunları Yükle
         self.combo_play.clear()
         plays = self.controller.get_active_plays()
         for p in plays:
             self.combo_play.addItem(p['oyun_adi'], p['id'])
 
-        # Şehirleri Yükle
+        # 2. Şehirleri Yükle
         self.combo_city.clear()
         cities = self.controller.get_distinct_cities()
         for c in cities:
             self.combo_city.addItem(c['sehir'])
 
-        # Varsayılan İst
+        # Varsayılan Şehir Seçimi (İstanbul)
         if self.combo_city.findText("İstanbul") != -1:
             self.combo_city.setCurrentText("İstanbul")
         elif self.combo_city.count() > 0:
             self.combo_city.setCurrentIndex(0)
 
-            # --- BURASI DEĞİŞTİ (Reji Listesi) ---
-            self.combo_crew.clear()
-            # Seçili tarihi string'e çevirip gönderiyoruz
+        # 3. REJİ ADAYLARINI YÜKLE (GİRİNTİ DÜZELTİLDİ - ARTIK IF/ELIF DIŞINDA)
+        self.combo_crew.clear()
+
+        # Tarih varsa ona göre filtrele, yoksa bugünü baz al
+        if self.selected_date:
             current_date_str = self.selected_date.toString("yyyy-MM-dd")
-            crew = self.controller.get_crew_candidates(date_str=current_date_str)
+        else:
+            current_date_str = QDate.currentDate().toString("yyyy-MM-dd")
 
-            for c in crew:
-                self.combo_crew.addItem(c['ad_soyad'], c['id'])
-            # -------------------------------------
+        crew = self.controller.get_crew_candidates(date_str=current_date_str)
 
-            if self.combo_play.count() > 0: self.combo_play.setCurrentIndex(0)
-            self.update_actor_candidates()
+        for c in crew:
+            self.combo_crew.addItem(c['ad_soyad'], c['id'])
+
+        # 4. Oyuncu Adaylarını Güncelle
+        if self.combo_play.count() > 0:
+            self.combo_play.setCurrentIndex(0)
+
+        self.update_actor_candidates()
+
     def on_city_changed(self, city):
         self.combo_venue.clear()
         if not city: return
@@ -259,13 +305,19 @@ class EventDialog(QDialog):
         data = self.controller.get_event_full_detail(self.event_id)
         if not data: return
 
-        # --- 1. Sinyalleri Durdur (Çökmeyi Önle) ---
+        # --- [CRASH ÇÖZÜMÜ BURADA] ---
+        # sqlite3.Row nesnesini normal sözlüğe çeviriyoruz ki .get() kullanabilelim
+        data = dict(data)
+        # -----------------------------
+
+        # --- 1. Sinyalleri Durdur ---
         self.combo_play.blockSignals(True)
         self.combo_city.blockSignals(True)
         self.combo_venue.blockSignals(True)
 
         try:
             # Oyun Seçimi
+            # Not: Veritabanından integer gelmeyebilir, garantiye alalım
             idx_play = self.combo_play.findData(data['oyun_id'])
             if idx_play != -1: self.combo_play.setCurrentIndex(idx_play)
 
@@ -292,10 +344,27 @@ class EventDialog(QDialog):
             self.combo_city.blockSignals(False)
             self.combo_venue.blockSignals(False)
 
-        # Aday oyuncu listesini (combobox) güncelle
+        # --- BUTON DURUMUNU AYARLA ---
+        # Artık data normal bir dict olduğu için .get() çalışır
+        durum = data.get('durum')
+
+        # Eğer buton henüz oluşmamışsa (nadir durum), hata vermesin
+        if hasattr(self, 'btn_status'):
+            if durum == 'Oynandı':
+                self.btn_status.setText("↩️ Oynanmadı Yap")
+                self.btn_status.setStyleSheet(
+                    "background-color: #e67e22; color: white; font-weight: bold; padding: 8px;")
+                self.current_status = 'Oynandı'
+            else:
+                self.btn_status.setText("✔️ Oynandı İşaretle")
+                self.btn_status.setStyleSheet(
+                    "background-color: #27ae60; color: white; font-weight: bold; padding: 8px;")
+                self.current_status = 'Planlandı'
+
+        # Aday oyuncu listesini güncelle
         self.update_actor_candidates()
 
-        # --- 3. EKSİK OLAN KISIM: KAYITLI KADROYU LİSTEYE GERİ YÜKLE ---
+        # --- 3. KAYITLI KADROYU LİSTEYE GERİ YÜKLE ---
 
         # A. Oyuncuları Yükle
         self.list_actors.clear()

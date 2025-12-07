@@ -432,26 +432,28 @@ class ActorsPage(QWidget):
     def add_exception(self):
         if not self.selected_personel_id: return
 
-        # 1. ÖNCE değişkenleri tanımlıyoruz (Sıralama Önemli!)
+        # 1. Değişkenleri Al
         date_str = self.date_exc.date().toString("yyyy-MM-dd")
         desc = self.input_exc_desc.text()
 
         if not desc:
-            QMessageBox.warning(self, "Hata", "Lütfen bir sebep yazın (Örn: Raporlu).")
+            QMessageBox.warning(self, "Hata", "Lütfen bir sebep yazın (Örn: Raporlu, İzinli).")
             return
 
-        # 2. ŞİMDİ kontrolü yapıyoruz (date_str artık tanımlı olduğu için hata vermez)
+        # --- [YENİ KONTROL] O GÜN OYUNU VAR MI? ---
         has_event, event_name = self.controller.check_if_person_has_event(self.selected_personel_id, date_str)
 
         if has_event:
             QMessageBox.critical(
-                self, "Engellendi",
-                f"Bu tarihte personelin '{event_name}' oyununda görevi var!\n\n"
-                "Önce takvimden o görevi kaldırmalısınız."
+                self, "İşlem Engellendi",
+                f"Bu personelin {date_str} tarihinde\n"
+                f"'{event_name}' oyununda görevi görünüyor!\n\n"
+                "Önce takvimden o görevi kaldırmadan istisna ekleyemezsiniz."
             )
             return
+        # ------------------------------------------
 
-        # 3. Sorun yoksa kaydet
+        # 2. Sorun Yoksa Kaydet
         self.controller.add_exception(
             self.selected_personel_id,
             date_str,
@@ -460,6 +462,7 @@ class ActorsPage(QWidget):
         self.input_exc_desc.clear()
         self.load_exceptions(self.selected_personel_id)
         QMessageBox.information(self, "Başarılı", "İstisna tarihi eklendi.")
+
     def delete_exception(self, exc_id):
         reply = QMessageBox.question(self, 'Sil', 'Silmek istiyor musun?', QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:

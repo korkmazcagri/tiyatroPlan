@@ -430,3 +430,24 @@ class CalendarController:
             print(f">>> [DEBUG-Helper HATA] Insert Hatası: {e}")
         finally:
             conn.close()
+
+
+    @staticmethod
+    def update_event_status(event_id, new_status):
+        """Etkinliğin durumunu (Oynandı / Planlandı) günceller."""
+        from app.core.db import get_db_connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            # Kolon yoksa ekle (Hata almamak için)
+            try:
+                cursor.execute("ALTER TABLE etkinlikler ADD COLUMN durum TEXT")
+            except:
+                pass
+
+            cursor.execute("UPDATE etkinlikler SET durum = ? WHERE id = ?", (new_status, event_id))
+            conn.commit()
+        except Exception as e:
+            print(f"Status Update Error: {e}")
+        finally:
+            conn.close()
