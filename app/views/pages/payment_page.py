@@ -107,7 +107,7 @@ class PaymentPage(QWidget):
 
                 # Ödeme İşlemini Kaydet
 
-                success = self.controller.add_transaction(
+            success = self.controller.add_transaction(
                     personel_id, QDate.currentDate().toString("yyyy-MM-dd"),
                     "Ödeme (Para Çıkışı)", amount, desc
                 )
