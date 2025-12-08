@@ -2,113 +2,192 @@ import sys
 import os
 import time
 import sqlite3
-from PyQt5.QtWidgets import QApplication, QSplashScreen, QMessageBox  # QMessageBox eklendi
+import shutil
+from datetime import datetime, timedelta
+
+from PyQt5.QtWidgets import QApplication, QSplashScreen, QMessageBox
 from PyQt5.QtGui import QPixmap, QFont, QColor
 from PyQt5.QtCore import Qt
 
 # Dosya yollarını düzgün yönetmek için
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+basedir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(basedir)
 
-# Ana Pencereyi Çağır
 try:
     from app.views.main_window import MainWindow
 except ImportError as e:
-    print(f"HATA: Modül bulunamadı. Lütfen dosya yapısını kontrol edin. Detay: {e}")
+    print(f"HATA: Modül bulunamadı. Detay: {e}")
     sys.exit(1)
 
+DB_NAME = os.path.join(basedir, "tiyatrodb.db")
+
 
 # ==========================================
-# 1. VERİTABANI KONTROLÜ (GÜNCELLENDİ)
+# 1. MAAŞ KONTROL SİSTEMİ (TEK TEK SORAN)
 # ==========================================
-def init_db_local():
-    """Veritabanı var mı kontrol eder. Yoksa HATA verir ve kapanır."""
-    db_file = "tiyatrodb.db"
+def check_salary_payments():
+    if not os.path.exists(DB_NAME): return
 
-    # --- YENİ KONTROL BLOĞU BAŞLANGICI ---
-    if not os.path.exists(db_file):
-        # Eğer dosya yoksa, kullanıcıya hata göster ve çık
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle("Veritabanı Bulunamadı!")
-        msg.setText(f"Kritik Hata: '{db_file}' dosyası bulunamadı.")
-        msg.setInformativeText("Programın çalışması için veritabanı dosyası gereklidir.\n\n"
-                               "Lütfen 'tiyatrodb.db' dosyasını .exe veya main.py dosyasının yanına kopyalayın.")
-        msg.setStandardButtons(QMessageBox.Ok)
-        msg.exec_()
-        sys.exit(1)  # Programı güvenli şekilde kapat
-    # --- YENİ KONTROL BLOĞU BİTİŞİ ---
-
-    # Dosya varsa bağlanıp tabloları garantiye al (Schema update ihtimaline karşı)
-    conn = sqlite3.connect(db_file)
+    conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("PRAGMA foreign_keys = ON;")
 
-    # Tabloları yine de kontrol edelim (Eksik tablo varsa tamamlasın ama dosya yoksa yaratmasın)
-    tables = [
-        "CREATE TABLE IF NOT EXISTS kisiler (id INTEGER PRIMARY KEY AUTOINCREMENT, ad_soyad TEXT NOT NULL, telefon TEXT, rol_tipi TEXT, odeme_tipi TEXT DEFAULT 'Oyun Başı', standart_ucret REAL DEFAULT 0, turne_engeli INTEGER DEFAULT 0, notlar TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
-        "CREATE TABLE IF NOT EXISTS oyunlar (id INTEGER PRIMARY KEY AUTOINCREMENT, oyun_adi TEXT NOT NULL, yazar TEXT, varsayilan_sure INTEGER DEFAULT 40, aktif_mi INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
-        "CREATE TABLE IF NOT EXISTS oyuncu_repertuvari (id INTEGER PRIMARY KEY AUTOINCREMENT, kisi_id INTEGER, oyun_id INTEGER, durum TEXT DEFAULT 'Hazır', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (kisi_id) REFERENCES kisiler(id) ON DELETE CASCADE, FOREIGN KEY (oyun_id) REFERENCES oyunlar(id) ON DELETE CASCADE, UNIQUE(kisi_id, oyun_id));",
-        "CREATE TABLE IF NOT EXISTS sahneler (id INTEGER PRIMARY KEY AUTOINCREMENT, sahne_adi TEXT NOT NULL, sehir TEXT NOT NULL, adres TEXT, kapasite INTEGER, yetkili_kisi TEXT, iletisim TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
-        "CREATE TABLE IF NOT EXISTS etkinlikler (id INTEGER PRIMARY KEY AUTOINCREMENT, oyun_id INTEGER, sahne_id INTEGER, tarih TEXT NOT NULL, baslangic_saati TEXT NOT NULL, notlar TEXT, durum TEXT DEFAULT 'Planlandı', FOREIGN KEY (oyun_id) REFERENCES oyunlar(id), FOREIGN KEY (sahne_id) REFERENCES sahneler(id));",
-        "CREATE TABLE IF NOT EXISTS etkinlik_kadrosu (id INTEGER PRIMARY KEY AUTOINCREMENT, etkinlik_id INTEGER, kisi_id INTEGER, gorev TEXT, ucret REAL DEFAULT 0, FOREIGN KEY (etkinlik_id) REFERENCES etkinlikler(id) ON DELETE CASCADE, FOREIGN KEY (kisi_id) REFERENCES kisiler(id));",
-        "CREATE TABLE IF NOT EXISTS finans_hareketleri (id INTEGER PRIMARY KEY AUTOINCREMENT, kisi_id INTEGER, tarih TEXT NOT NULL, islem_turu TEXT NOT NULL, miktar REAL NOT NULL, aciklama TEXT, FOREIGN KEY (kisi_id) REFERENCES kisiler(id) ON DELETE CASCADE);",
-        "CREATE TABLE IF NOT EXISTS kisi_haftalik_musaitlik (id INTEGER PRIMARY KEY, kisi_id INTEGER, gun_index INTEGER, durum TEXT DEFAULT 'Müsait', aciklama TEXT);",
-        "CREATE TABLE IF NOT EXISTS musaitlik_istisna (id INTEGER PRIMARY KEY, kisi_id INTEGER, tarih TEXT, tur TEXT, aciklama TEXT);"
-    ]
+    today = datetime.now().date()
+    start_of_week_str = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+    start_of_month_str = today.replace(day=1).strftime("%Y-%m-%d")
+    bugun_str = today.strftime("%Y-%m-%d")
 
-    for query in tables:
-        cursor.execute(query)
+    cursor.execute("SELECT id, ad_soyad, standart_ucret, odeme_tipi FROM kisiler")
+    tum_kisiler = cursor.fetchall()
 
-    conn.commit()
+    # Eksikleri önce tespit edelim (Kullanıcıyı veritabanı açıkken bekletmemek için)
+    eksik_haftaliklar = []
+    eksik_ayliklar = []
+
+    for kid, ad, ucret_raw, tip_raw in tum_kisiler:
+        try:
+            ucret = float(str(ucret_raw).replace(',', '.').strip())
+        except:
+            ucret = 0
+
+        if ucret <= 0 or not tip_raw: continue
+        tip_temiz = str(tip_raw).lower()
+
+        # HAFTALIK KONTROL
+        if 'hafta' in tip_temiz:
+            cursor.execute("""
+                SELECT id FROM finans_hareketleri 
+                WHERE kisi_id = ? AND islem_turu = 'Borç' 
+                AND aciklama LIKE '%Haftalık%' AND tarih >= ? 
+            """, (kid, start_of_week_str))
+            if not cursor.fetchone():
+                eksik_haftaliklar.append((kid, ad, ucret))
+
+        # AYLIK KONTROL
+        elif 'ay' in tip_temiz:
+            cursor.execute("""
+                SELECT id FROM finans_hareketleri 
+                WHERE kisi_id = ? AND islem_turu = 'Borç' 
+                AND aciklama LIKE '%Aylık%' AND tarih >= ? 
+            """, (kid, start_of_month_str))
+            if not cursor.fetchone():
+                eksik_ayliklar.append((kid, ad, ucret))
+
+    # --- KULLANICIYA TEK TEK SOR ---
+
+    # 1. HAFTALIKLAR İÇİN DÖNGÜ
+    for kid, ad, kucret in eksik_haftaliklar:
+        msg_text = f"HAFTALIK MAAŞ KONTROLÜ\n\n" \
+                   f"Personel: {ad}\n" \
+                   f"Tutar: {kucret} TL\n\n" \
+                   f"Bu hafta için ödeme kaydı bulunamadı.\n" \
+                   f"Bu tutar borç olarak yansıtılsın mı?"
+
+        reply = QMessageBox.question(None, "Maaş Onayı", msg_text, QMessageBox.Yes | QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            cursor.execute("""
+                INSERT INTO finans_hareketleri (kisi_id, tarih, islem_turu, miktar, aciklama)
+                VALUES (?, ?, 'Borç', ?, 'Haftalık Maaş')
+            """, (kid, bugun_str, kucret))
+            conn.commit()  # Her onayı anında kaydet
+
+    # 2. AYLIKLAR İÇİN DÖNGÜ
+    for kid, ad, kucret in eksik_ayliklar:
+        msg_text = f"AYLIK MAAŞ KONTROLÜ\n\n" \
+                   f"Personel: {ad}\n" \
+                   f"Tutar: {kucret} TL\n\n" \
+                   f"Bu ay için ödeme kaydı bulunamadı.\n" \
+                   f"Bu tutar borç olarak yansıtılsın mı?"
+
+        reply = QMessageBox.question(None, "Maaş Onayı", msg_text, QMessageBox.Yes | QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            cursor.execute("""
+                INSERT INTO finans_hareketleri (kisi_id, tarih, islem_turu, miktar, aciklama)
+                VALUES (?, ?, 'Borç', ?, 'Aylık Maaş')
+            """, (kid, bugun_str, kucret))
+            conn.commit()
+
+    conn.close()
+
+
+# ==========================================
+# 2. DİĞER FONKSİYONLAR
+# ==========================================
+def perform_auto_backup():
+    backup_dir = os.path.join(basedir, "backups")
+    if not os.path.exists(DB_NAME): return
+    if not os.path.exists(backup_dir):
+        try:
+            os.makedirs(backup_dir)
+        except:
+            return
+
+    today = datetime.now()
+    monday_str = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+    backup_path = os.path.join(backup_dir, f"yedek_{monday_str}.db")
+
+    if not os.path.exists(backup_path):
+        try:
+            shutil.copy2(DB_NAME, backup_path)
+        except:
+            pass
+
+
+def init_db_local():
+    if not os.path.exists(DB_NAME):
+        temp_app = QApplication.instance() or QApplication(sys.argv)
+        QMessageBox.critical(None, "Hata", f"Veritabanı bulunamadı:\n{DB_NAME}")
+        sys.exit(1)
+
+    conn = sqlite3.connect(DB_NAME)
+    conn.execute("PRAGMA foreign_keys = ON;")
     conn.close()
 
 
 def load_stylesheet(app):
-    """CSS dosyasını yükler (UTF-8 Destekli)"""
     try:
-        style_path = os.path.join("app", "views", "styles.qss")
-        if os.path.exists(style_path):
-            with open(style_path, "r", encoding="utf-8") as f:
-                app.setStyleSheet(f.read())
-    except Exception as e:
-        print(f"Stil Dosyası Hatası: {e}")
+        style_path = os.path.join(basedir, "app", "views", "styles.qss")
+        with open(style_path, "r", encoding="utf-8") as f:
+            app.setStyleSheet(f.read())
+    except:
+        pass
 
 
 # ==========================================
-# 2. ANA FONKSİYON
+# 3. ANA DÖNGÜ
 # ==========================================
 def main():
     app = QApplication(sys.argv)
 
-    # --- SPLASH SCREEN ---
-    logo_path = os.path.join("assets", "icon.jpg")
-
-    if os.path.exists(logo_path):
-        pixmap = QPixmap(logo_path)
-    else:
-        pixmap = QPixmap(500, 300)
-        pixmap.fill(QColor("#1e1e1e"))
+    # 1. Splash
+    logo_path = os.path.join(basedir, "assets", "icon.jpg")
+    pixmap = QPixmap(logo_path) if os.path.exists(logo_path) else QPixmap(500, 300)
+    if not os.path.exists(logo_path): pixmap.fill(QColor("#1e1e1e"))
 
     splash = QSplashScreen(pixmap)
     splash.show()
     app.processEvents()
 
-    # --- YÜKLEME İŞLEMLERİ ---
-
-    # 1. Veritabanı Kontrolü (HATA VARSA BURADA KESİLİR)
+    # 2. Hazırlık
     init_db_local()
+    perform_auto_backup()
 
-    # 2. Bekleme
-    time.sleep(1.5)
+    time.sleep(1)
+
+    # 3. Maaş Kontrolü (Pencere açılmadan önce sorar)
+    check_salary_payments()
+
+    # 4. Arayüzü Başlat
     splash.showMessage("Arayüz Yükleniyor...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
     app.processEvents()
-    time.sleep(0.5)
 
     load_stylesheet(app)
 
     window = MainWindow()
-    window.show()
+
     splash.finish(window)
+    window.show()
 
     sys.exit(app.exec_())
 

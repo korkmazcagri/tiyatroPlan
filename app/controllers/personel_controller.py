@@ -85,17 +85,29 @@ class PersonelController:
 
     @staticmethod
     def get_balance(personel_id):
-        query_hakedis = "SELECT SUM(miktar) as toplam FROM finans_hareketleri WHERE kisi_id = ? AND islem_turu LIKE 'Hakediş%'"
-        query_odeme = "SELECT SUM(miktar) as toplam FROM finans_hareketleri WHERE kisi_id = ? AND islem_turu LIKE 'Ödeme%'"
+        # DÜZELTME: Hem 'Hakediş' (manuel eklenenler) hem de 'Borç' (otomatik eklenenler) toplanmalı.
+        query_borc = """
+                SELECT SUM(miktar) as toplam 
+                FROM finans_hareketleri 
+                WHERE kisi_id = ? 
+                AND (islem_turu = 'Borç' OR islem_turu LIKE 'Hakediş%')
+            """
 
-        res_hakedis = execute_query(query_hakedis, (personel_id,))
+        query_odeme = """
+                SELECT SUM(miktar) as toplam 
+                FROM finans_hareketleri 
+                WHERE kisi_id = ? 
+                AND islem_turu LIKE 'Ödeme%'
+            """
+
+        res_borc = execute_query(query_borc, (personel_id,))
         res_odeme = execute_query(query_odeme, (personel_id,))
 
-        toplam_hakedis = res_hakedis[0]['toplam'] if res_hakedis[0]['toplam'] else 0
-        toplam_odeme = res_odeme[0]['toplam'] if res_odeme[0]['toplam'] else 0
+        # None gelirse 0 yap
+        toplam_borc = res_borc[0]['toplam'] if res_borc and res_borc[0]['toplam'] else 0
+        toplam_odeme = res_odeme[0]['toplam'] if res_odeme and res_odeme[0]['toplam'] else 0
 
-        return toplam_hakedis - toplam_odeme
-
+        return toplam_borc - toplam_odeme
     @staticmethod
     def add_transaction(personel_id, tarih, islem_turu, miktar, aciklama):
         query = """
@@ -210,3 +222,9 @@ class PersonelController:
             return True, result[0]['oyun_adi']
         else:
             return False, None
+
+    @staticmethod
+    def delete_transaction(trans_id):
+        """Finansal işlemi ID'ye göre siler."""
+        query = "DELETE FROM finans_hareketleri WHERE id = ?"
+        execute_query(query, (trans_id,), commit=True)

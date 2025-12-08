@@ -124,13 +124,17 @@ class ActorsPage(QWidget):
         layout.addWidget(self.lbl_balance)
 
         self.table_finance = QTableWidget()
-        self.table_finance.setColumnCount(4)
-        self.table_finance.setHorizontalHeaderLabels(["Tarih", "İşlem", "Tutar", "Açıklama"])
+        self.table_finance.setColumnCount(5)
+        self.table_finance.setHorizontalHeaderLabels(["Tarih", "İşlem", "Tutar", "Açıklama", "Sil"])
+        # -----------------------------------------
+
         self.table_finance.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # Sil butonu sütunu çok geniş olmasın, daraltalım (4. indeks)
+        self.table_finance.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+
         self.table_finance.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table_finance.setSelectionMode(QAbstractItemView.SingleSelection)
         layout.addWidget(self.table_finance)
-
         lbl_add = QLabel("Yeni İşlem Ekle")
         lbl_add.setObjectName("section_title")
         layout.addWidget(lbl_add)
@@ -494,19 +498,41 @@ class ActorsPage(QWidget):
     def load_finance_history(self, p_id):
         self.table_finance.setRowCount(0)
         history = self.controller.get_finance_history(p_id)
+
         for row, data in enumerate(history):
             self.table_finance.insertRow(row)
             self.table_finance.setItem(row, 0, QTableWidgetItem(data['tarih']))
             self.table_finance.setItem(row, 1, QTableWidgetItem(data['islem_turu']))
+
             amt = QTableWidgetItem(f"{data['miktar']:.2f} TL")
+            # Ödeme ise Kırmızı, Borç ise Yeşil (veya tam tersi senin tercihine göre)
             amt.setForeground(QColor("red") if "Ödeme" in data['islem_turu'] else QColor("green"))
             self.table_finance.setItem(row, 2, amt)
+
             self.table_finance.setItem(row, 3, QTableWidgetItem(data['aciklama']))
 
+            # --- SİL BUTONU EKLEME ---
+            btn_del = QPushButton("Sil")
+            btn_del.setStyleSheet("background-color: #c0392b; color: white; font-weight: bold; border-radius: 3px;")
+            # Tıklanınca o işlemin ID'sini gönder
+            btn_del.clicked.connect(lambda _, tid=data['id']: self.delete_finance_item(tid))
+
+            # Butonu ortalamak için widget içine koyuyoruz
+            container = QWidget()
+            layout = QHBoxLayout(container)
+            layout.setContentsMargins(2, 2, 2, 2)
+            layout.addWidget(btn_del)
+            self.table_finance.setCellWidget(row, 4, container)
+            # -------------------------
+
+        # Bakiyeyi Güncelle
         bak = self.controller.get_balance(p_id)
+
+        # Bakiye Rengi
+        renk = "#2ecc71" if bak >= 0 else "#e74c3c"  # Pozitifse Yeşil, Negatifse Kırmızı
+
         self.lbl_balance.setText(f"Bakiye: {bak:.2f} TL")
-        self.lbl_balance.setStyleSheet(
-            f"font-size: 20px; font-weight: bold; color: {'#2ecc71' if bak >= 0 else '#e74c3c'};")
+        self.lbl_balance.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {renk};")
 
     def add_finance_transaction(self):
         if not self.selected_personel_id: return
@@ -518,6 +544,23 @@ class ActorsPage(QWidget):
         self.spin_amount.setValue(0)
         self.load_finance_history(self.selected_personel_id)
 
+    def delete_finance_item(self, trans_id):
+        """Seçilen finans işlemini siler ve listeyi yeniler."""
+        reply = QMessageBox.question(
+            self,
+            "İşlemi Sil",
+            "Bu finansal işlemi silmek istiyor musunuz?\nBakiye yeniden hesaplanacaktır.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.controller.delete_transaction(trans_id)
+
+            # Listeyi ve Bakiyeyi Yenile
+            if self.selected_personel_id:
+                self.load_finance_history(self.selected_personel_id)
+
+            QMessageBox.information(self, "Başarılı", "İşlem silindi ve bakiye güncellendi.")
     def load_repertoire_history(self, p_id):
         self.table_repertoire.setRowCount(0)
         rep = self.controller.get_personel_repertoire(p_id)
