@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem
     QHBoxLayout, QLabel, QDialog, QLineEdit, QMessageBox
 from PyQt5.QtCore import Qt, QDate
 from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt, QDate, QTimer # QTimer eklendi
+from PyQt5.QtCore import Qt, QDate, QTimer  # QTimer eklendi
 # Controller ve Dialog importları
 from app.controllers.personel_controller import PersonelController
 from app.views.dialogs.payment_dialog import PaymentDialog
@@ -38,7 +38,7 @@ class PaymentPage(QWidget):
         self.load_data()
 
     # --- ESKİ load_payment_data -> ŞİMDİ load_data ---
-        # app/views/pages/payment_page.py dosyasında, load_data fonksiyonunu değiştirin.
+    # app/views/pages/payment_page.py dosyasında, load_data fonksiyonunu değiştirin.
 
     def load_data(self):
         """MainWindow tarafından çağrıldığında tabloyu yeniler ve borçluya göre sıralar."""
@@ -88,6 +88,7 @@ class PaymentPage(QWidget):
             QMessageBox.critical(self, "Kritik Yükleme Hatası",
                                  f"Ödeme tablosu yüklenirken beklenmedik bir hata oluştu. Lütfen verilerinizi kontrol edin.\n\nHata: {e}")
             self.table_payment.setRowCount(0)  # Tabloyu temizle
+
     def open_payment_dialog(self, personel_id, personel_name, current_balance):
         """Ödeme onay penceresini açar."""
         dialog = PaymentDialog(
@@ -108,14 +109,15 @@ class PaymentPage(QWidget):
                 # Ödeme İşlemini Kaydet
 
             success = self.controller.add_transaction(
-                    personel_id, QDate.currentDate().toString("yyyy-MM-dd"),
-                    "Ödeme (Para Çıkışı)", amount, desc
-                )
+                personel_id, QDate.currentDate().toString("yyyy-MM-dd"),
+                "Ödeme (Para Çıkışı)", amount, desc
+            )
 
-                self.load_data()
+            self.load_data()
 
         except Exception as e:
             print(e)
+
 
     def finish_payment_ui(self, personel_name, amount):
         """Ödeme başarılı olduktan sonra UI işlemlerini yapan fonksiyon."""

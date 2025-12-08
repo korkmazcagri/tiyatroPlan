@@ -5,12 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6d5319fe-1f09-43a9-9a3e-28501131a9dc" name="Changes" comment="GİT">
-      <change afterPath="$PROJECT_DIR$/app/views/dialogs/payment_dialog.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/pages/payment_page.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/controllers/personel_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/personel_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/main_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tiyatrodb.db" beforeDir="false" afterPath="$PROJECT_DIR$/tiyatrodb.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/pages/payment_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/pages/payment_page.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/Analysis-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/Analysis-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/COLLECT-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/COLLECT-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/EXE-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/EXE-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/PYZ-00.pyz" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/PYZ-00.pyz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/PYZ-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/PYZ-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/TiyatroYonetim.exe" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/TiyatroYonetim.exe" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/TiyatroYonetim.pkg" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/TiyatroYonetim.pkg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/base_library.zip" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/base_library.zip" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/warn-TiyatroYonetim.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/warn-TiyatroYonetim.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/TiyatroYonetim/xref-TiyatroYonetim.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/TiyatroYonetim/xref-TiyatroYonetim.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/TiyatroYonetim/TiyatroYonetim.exe" beforeDir="false" afterPath="$PROJECT_DIR$/dist/TiyatroYonetim/TiyatroYonetim.exe" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/TiyatroYonetim/_internal/app/controllers/personel_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/dist/TiyatroYonetim/_internal/app/controllers/personel_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/TiyatroYonetim/_internal/app/views/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/dist/TiyatroYonetim/_internal/app/views/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/TiyatroYonetim/_internal/app/views/pages/actors_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/dist/TiyatroYonetim/_internal/app/views/pages/actors_page.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/TiyatroYonetim/_internal/base_library.zip" beforeDir="false" afterPath="$PROJECT_DIR$/dist/TiyatroYonetim/_internal/base_library.zip" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -134,7 +145,7 @@
       <workItem from="1764964949846" duration="17000" />
       <workItem from="1765177057368" duration="7910000" />
       <workItem from="1765186430150" duration="243000" />
-      <workItem from="1765191193942" duration="10160000" />
+      <workItem from="1765191193942" duration="11328000" />
     </task>
     <task id="LOCAL-00001" summary="GİT">
       <option name="closed" value="true" />
@@ -200,7 +211,23 @@
       <option name="project" value="LOCAL" />
       <updated>1765198819447</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="GİT">
+      <option name="closed" value="true" />
+      <created>1765203004991</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1765203004993</updated>
+    </task>
+    <task id="LOCAL-00010" summary="GİT">
+      <option name="closed" value="true" />
+      <created>1765203033629</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1765203033629</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -225,7 +252,7 @@
     <SUITE FILE_PATH="coverage/tiyatroPlan$home_page.coverage" NAME="home_page Coverage Results" MODIFIED="1765180367565" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/views/pages" />
     <SUITE FILE_PATH="coverage/tiyatro$actors_page.coverage" NAME="actors_page Coverage Results" MODIFIED="1764610561704" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/views/pages" />
     <SUITE FILE_PATH="coverage/tiyatro$main.coverage" NAME="main Coverage Results" MODIFIED="1764713729918" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/tiyatroPlan$main.coverage" NAME="main Coverage Results" MODIFIED="1765202948151" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tiyatroPlan$main.coverage" NAME="main Coverage Results" MODIFIED="1765204007031" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tiyatroPlan$a.coverage" NAME="a Coverage Results" MODIFIED="1765197665384" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tiyatroPlan$dbolustur.coverage" NAME="dbolustur Coverage Results" MODIFIED="1765182752992" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tiyatro$dbolustur.coverage" NAME="dbolustur Coverage Results" MODIFIED="1764708394076" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

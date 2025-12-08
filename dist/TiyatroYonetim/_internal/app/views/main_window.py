@@ -11,7 +11,9 @@ from app.views.pages.calendar_page import CalendarPage
 from app.views.pages.plays_page import PlaysPage
 from app.views.pages.actors_page import ActorsPage
 from app.views.pages.venues_page import VenuesPage
-
+# --- YENİ SAYFA IMPORT EDİLDİ ---
+from app.views.pages.payment_page import PaymentPage
+# --------------------------------
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -49,12 +51,14 @@ class MainWindow(QMainWindow):
         self.menu_group = QButtonGroup(self)
         self.menu_group.setExclusive(True)
 
-        # Butonları Ekleme
-        self.create_menu_item("Ana Sayfa", 0)
-        self.create_menu_item("Takvim", 1)
-        self.create_menu_item("Oyunlar", 2)
-        self.create_menu_item("Oyuncu ve Teknik", 3)
-        self.create_menu_item("Sahneler", 4)
+        # --- MENÜ BUTONLARI OLUŞTURMA ---
+        # Sayfa Index'leri 0'dan başlıyor ve sıralı olmalı!
+        self.create_menu_item("Ana Sayfa", 0)       # Index 0
+        self.create_menu_item("Takvim", 1)          # Index 1
+        self.create_menu_item("Oyunlar", 2)         # Index 2
+        self.create_menu_item("Oyuncu ve Teknik", 3) # Index 3
+        self.create_menu_item("Sahneler", 4)        # Index 4
+        self.create_menu_item("Ödemeler", 5)        # Index 5 (YENİ EKLENDİ)
 
         self.sidebar_layout.addStretch()
 
@@ -67,13 +71,14 @@ class MainWindow(QMainWindow):
         # --- 2. SAĞ İÇERİK ALANI ---
         self.content_area = QStackedWidget()
 
-        # Sayfaları Yükle
+        # --- SAYFALAR LİSTESİ GÜNCELLENDİ ---
         self.pages = [
-            HomePage(),  # 0
-            CalendarPage(),  # 1
-            PlaysPage(),  # 2
-            ActorsPage(),  # 3
-            VenuesPage()  # 4
+            HomePage(),        # 0
+            CalendarPage(),    # 1
+            PlaysPage(),       # 2
+            ActorsPage(),      # 3
+            VenuesPage(),      # 4
+            PaymentPage()      # 5 (YENİ EKLENDİ)
         ]
 
         for page in self.pages:
@@ -102,10 +107,9 @@ class MainWindow(QMainWindow):
         self.content_area.setCurrentIndex(index)
 
         # --- [YENİ] VERİ YENİLEME MANTIĞI ---
-        # Şu an aktif olan sayfayı al
         current_widget = self.content_area.widget(index)
 
-        # Eğer sayfanın 'load_data' fonksiyonu varsa çalıştır (Home, Actors vb.)
+        # Eğer sayfanın 'load_data' fonksiyonu varsa çalıştır (Home, Actors, Payment)
         if hasattr(current_widget, "load_data"):
             current_widget.load_data()
 

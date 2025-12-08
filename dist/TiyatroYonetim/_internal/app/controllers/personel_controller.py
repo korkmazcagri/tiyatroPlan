@@ -47,6 +47,34 @@ class PersonelController:
         query = "SELECT * FROM kisiler WHERE ad_soyad LIKE ? ORDER BY ad_soyad ASC"
         return execute_query(query, (f"%{name_filter}%",))
 
+        # app/controllers/personel_controller.py dosyasında, mevcut record_payment metodunu bununla değiştir:
+
+        # app/controllers/personel_controller.py dosyasında, record_payment fonksiyonunu bul ve şu hale getir:
+
+        # app/controllers/personel_controller.py dosyasında:
+
+        # app/controllers/personel_controller.py dosyasında:
+
+    @staticmethod
+    def safely_record_payment(personel_id, amount, tarih, aciklama="Maaş Ödemesi"):
+        """
+        [YENİ GÜVENLİK KATMANI]
+        PersonelController.add_transaction fonksiyonunu çağırır ve crash'leri yakalar.
+        """
+        islem_turu = 'Ödeme'
+        if amount <= 0:
+            return False, "Ödeme miktarı pozitif olmalıdır."
+
+        try:
+            # Kullanıcının istediği standart add_transaction fonksiyonunu çağırıyoruz
+            # Bu fonksiyon, harici execute_query'yi kullanır.
+            PersonelController.add_transaction(personel_id, tarih, islem_turu, amount, aciklama)
+            return True, "Ödeme başarıyla kaydedildi."
+
+        except Exception as e:
+            # Eğer add_transaction/execute_query hata fırlatırsa (DB kilidi, format hatası vb.)
+            print(f"VERİ KAYIT HATASI (add_transaction): {e}")
+            return False, f"Ödeme işlemi başarısız oldu: {e}"
     @staticmethod
     def get_personel_detail(personel_id):
         """Tek bir personelin detayını getirir."""
@@ -85,16 +113,64 @@ class PersonelController:
 
     @staticmethod
     def get_balance(personel_id):
-        query_hakedis = "SELECT SUM(miktar) as toplam FROM finans_hareketleri WHERE kisi_id = ? AND islem_turu LIKE 'Hakediş%'"
-        query_odeme = "SELECT SUM(miktar) as toplam FROM finans_hareketleri WHERE kisi_id = ? AND islem_turu LIKE 'Ödeme%'"
+        # DÜZELTME: Hem 'Borç' hem de 'Hakediş' toplanmalı.
+        query_borc = """
+                    SELECT SUM(miktar) as toplam 
+                    FROM finans_hareketleri 
+                    WHERE kisi_id = ? 
+                    AND (islem_turu = 'Borç' OR islem_turu LIKE 'Hakediş%')
+                """
 
-        res_hakedis = execute_query(query_hakedis, (personel_id,))
+        query_odeme = """
+                    SELECT SUM(miktar) as toplam 
+                    FROM finans_hareketleri 
+                    WHERE kisi_id = ? 
+                    AND islem_turu LIKE 'Ödeme%'
+                """
+
+        res_borc = execute_query(query_borc, (personel_id,))
         res_odeme = execute_query(query_odeme, (personel_id,))
 
-        toplam_hakedis = res_hakedis[0]['toplam'] if res_hakedis[0]['toplam'] else 0
-        toplam_odeme = res_odeme[0]['toplam'] if res_odeme[0]['toplam'] else 0
+        # KRİTİK DÜZELTME: None gelirse 0.0 yap
+        toplam_borc = res_borc[0]['toplam'] if res_borc and res_borc[0]['toplam'] is not None else 0.0
+        toplam_odeme = res_odeme[0]['toplam'] if res_odeme and res_odeme[0]['toplam'] is not None else 0.0
 
-        return toplam_hakedis - toplam_odeme
+        return toplam_borc - toplam_odeme
+
+    def get_personnel_with_balance(self):
+        """Tüm personeli bakiyeleriyle birlikte getirir, borç miktarına göre sıralar ve hataları yutar."""
+
+        try:
+            # 1. Tüm personeli çek
+            query = "SELECT id, ad_soyad FROM kisiler"
+            all_personel = execute_query(query)
+
+            personel_list_with_balance = []
+
+            # 2. Herkesin bakiyesini hesapla
+            for p in all_personel:
+                try:
+                    # Bakiye hesaplanırken oluşabilecek hataları burada yakala
+                    balance = self.get_balance(p['id'])
+                    personel_list_with_balance.append({
+                        'id': p['id'],
+                        'ad_soyad': p['ad_soyad'],
+                        'bakiye': balance
+                    })
+                except Exception as e:
+                    # Eğer bir kişinin bakiyesi hesaplanamazsa, o kişiyi atla.
+                    print(f"UYARI: Personel ID {p['id']} bakiyesi hesaplanamadı ve atlandı: {e}")
+                    continue
+
+            # 3. Borç miktarına göre sırala
+            personel_list_with_balance.sort(key=lambda x: x['bakiye'] or 0, reverse=True)
+
+            return personel_list_with_balance
+
+        except Exception as general_e:
+            # En tepede oluşan KRİTİK hataları yakala ve boş liste dön
+            print(f"KRİTİK HATA: Personel listesi yüklenirken beklenmedik hata: {general_e}")
+            return []
 
     @staticmethod
     def add_transaction(personel_id, tarih, islem_turu, miktar, aciklama):
@@ -210,3 +286,9 @@ class PersonelController:
             return True, result[0]['oyun_adi']
         else:
             return False, None
+
+    @staticmethod
+    def delete_transaction(trans_id):
+        """Finansal işlemi ID'ye göre siler."""
+        query = "DELETE FROM finans_hareketleri WHERE id = ?"
+        execute_query(query, (trans_id,), commit=True)
