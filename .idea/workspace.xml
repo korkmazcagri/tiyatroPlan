@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="6d5319fe-1f09-43a9-9a3e-28501131a9dc" name="Changes" comment="GİT">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,6 +101,11 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -124,7 +130,7 @@
       <workItem from="1764964949846" duration="17000" />
       <workItem from="1765177057368" duration="7910000" />
       <workItem from="1765186430150" duration="243000" />
-      <workItem from="1765191193942" duration="784000" />
+      <workItem from="1765191193942" duration="1514000" />
     </task>
     <task id="LOCAL-00001" summary="GİT">
       <option name="closed" value="true" />
@@ -166,7 +172,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765186555991</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="GİT">
+      <option name="closed" value="true" />
+      <created>1765192553973</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1765192553973</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -191,7 +205,7 @@
     <SUITE FILE_PATH="coverage/tiyatroPlan$home_page.coverage" NAME="home_page Coverage Results" MODIFIED="1765180367565" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/views/pages" />
     <SUITE FILE_PATH="coverage/tiyatro$actors_page.coverage" NAME="actors_page Coverage Results" MODIFIED="1764610561704" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/views/pages" />
     <SUITE FILE_PATH="coverage/tiyatro$main.coverage" NAME="main Coverage Results" MODIFIED="1764713729918" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/tiyatroPlan$main.coverage" NAME="main Coverage Results" MODIFIED="1765185761475" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tiyatroPlan$main.coverage" NAME="main Coverage Results" MODIFIED="1765193026658" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tiyatroPlan$a.coverage" NAME="a Coverage Results" MODIFIED="1765184217072" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tiyatroPlan$dbolustur.coverage" NAME="dbolustur Coverage Results" MODIFIED="1765182752992" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tiyatro$dbolustur.coverage" NAME="dbolustur Coverage Results" MODIFIED="1764708394076" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

@@ -1,29 +1,49 @@
 import sys
 import os
-import time  # Bekleme süresi için
+import time
 import sqlite3
-from PyQt5.QtWidgets import QApplication, QSplashScreen
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtWidgets import QApplication, QSplashScreen, QMessageBox  # QMessageBox eklendi
+from PyQt5.QtGui import QPixmap, QFont, QColor
 from PyQt5.QtCore import Qt
 
 # Dosya yollarını düzgün yönetmek için
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Ana Pencereyi Çağır
-from app.views.main_window import MainWindow
+try:
+    from app.views.main_window import MainWindow
+except ImportError as e:
+    print(f"HATA: Modül bulunamadı. Lütfen dosya yapısını kontrol edin. Detay: {e}")
+    sys.exit(1)
 
 
 # ==========================================
-# 1. VERİTABANI KONTROLÜ (İÇERİ GÖMÜLDÜ)
+# 1. VERİTABANI KONTROLÜ (GÜNCELLENDİ)
 # ==========================================
 def init_db_local():
-    """Veritabanı tablolarını kontrol eder, yoksa oluşturur."""
+    """Veritabanı var mı kontrol eder. Yoksa HATA verir ve kapanır."""
     db_file = "tiyatrodb.db"
+
+    # --- YENİ KONTROL BLOĞU BAŞLANGICI ---
+    if not os.path.exists(db_file):
+        # Eğer dosya yoksa, kullanıcıya hata göster ve çık
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowTitle("Veritabanı Bulunamadı!")
+        msg.setText(f"Kritik Hata: '{db_file}' dosyası bulunamadı.")
+        msg.setInformativeText("Programın çalışması için veritabanı dosyası gereklidir.\n\n"
+                               "Lütfen 'tiyatrodb.db' dosyasını .exe veya main.py dosyasının yanına kopyalayın.")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+        sys.exit(1)  # Programı güvenli şekilde kapat
+    # --- YENİ KONTROL BLOĞU BİTİŞİ ---
+
+    # Dosya varsa bağlanıp tabloları garantiye al (Schema update ihtimaline karşı)
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
 
-    # Temel Tabloların Varlığını Garantiye Al
+    # Tabloları yine de kontrol edelim (Eksik tablo varsa tamamlasın ama dosya yoksa yaratmasın)
     tables = [
         "CREATE TABLE IF NOT EXISTS kisiler (id INTEGER PRIMARY KEY AUTOINCREMENT, ad_soyad TEXT NOT NULL, telefon TEXT, rol_tipi TEXT, odeme_tipi TEXT DEFAULT 'Oyun Başı', standart_ucret REAL DEFAULT 0, turne_engeli INTEGER DEFAULT 0, notlar TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
         "CREATE TABLE IF NOT EXISTS oyunlar (id INTEGER PRIMARY KEY AUTOINCREMENT, oyun_adi TEXT NOT NULL, yazar TEXT, varsayilan_sure INTEGER DEFAULT 40, aktif_mi INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
@@ -60,49 +80,35 @@ def load_stylesheet(app):
 def main():
     app = QApplication(sys.argv)
 
-    # --- SPLASH SCREEN (YÜKLEME EKRANI) ---
-    # Proje klasörüne 'logo.png' koyarsan o çıkar, yoksa sadece yazı çıkar.
+    # --- SPLASH SCREEN ---
     logo_path = os.path.join("assets", "icon.jpg")
 
     if os.path.exists(logo_path):
         pixmap = QPixmap(logo_path)
-        # İstersen logoyu boyutlandır:
-        # pixmap = pixmap.scaled(500, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        splash = QSplashScreen(pixmap)
     else:
-        # Logo yoksa boş bir gri kutu göstermesin diye varsayılan oluşturabiliriz
-        # Ama genelde QSplashScreen resim ister. Resim yoksa pas geçelim.
-        splash = None
+        pixmap = QPixmap(500, 300)
+        pixmap.fill(QColor("#1e1e1e"))
 
-    if splash:
-        splash.showMessage("Sistem Başlatılıyor...\nVeritabanı Kontrol Ediliyor...", Qt.AlignBottom | Qt.AlignCenter,
-                           Qt.white)
-        splash.setFont(QFont("Arial", 10, QFont.Bold))
-        splash.show()
-        app.processEvents()  # Arayüzün donmaması için
+    splash = QSplashScreen(pixmap)
+    splash.show()
+    app.processEvents()
 
     # --- YÜKLEME İŞLEMLERİ ---
 
-    # 1. Veritabanı Kontrolü
+    # 1. Veritabanı Kontrolü (HATA VARSA BURADA KESİLİR)
     init_db_local()
 
-    # 2. Yapay Bekleme (Loading ekranı görünsün diye - İstersen kaldırabilirsin)
-    if splash:
-        time.sleep(1.5)
-        splash.showMessage("Arayüz Yükleniyor...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
-        app.processEvents()
+    # 2. Bekleme
+    time.sleep(1.5)
+    splash.showMessage("Arayüz Yükleniyor...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+    app.processEvents()
+    time.sleep(0.5)
 
-    # 3. Tasarım Yüklemesi
     load_stylesheet(app)
 
-    # 4. Ana Pencereyi Oluştur
     window = MainWindow()
-
-    # --- AÇILIŞ ---
     window.show()
-
-    if splash:
-        splash.finish(window)  # Ana pencere açılınca splash'i kapat
+    splash.finish(window)
 
     sys.exit(app.exec_())
 
