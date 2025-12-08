@@ -17,35 +17,42 @@ class HomeController:
     @staticmethod
     def get_pending_events():
         """
-        Henüz 'Oynandı' olarak işaretlenmemiş (Gelecek veya Geçmiş fark etmez)
-        tüm aktif etkinlikleri getirir.
+        Henüz 'Oynandı' olarak işaretlenmemiş oyunları ve oyuncularını getirir.
         """
-        # 'durum' kolonu yoksa hata vermesin diye kontrolsüz çekiyoruz,
-        # çünkü veritabanı yapısında 'durum' kolonu olmayabilir,
-        # aşağıda 'process_play_finance' içinde ekliyoruz.
         try:
+            # Temel etkinlik verisi
             query = """
-                SELECT e.id, e.tarih, e.baslangic_saati, o.oyun_adi, s.sahne_adi, s.sehir, e.durum
-                FROM etkinlikler e
-                JOIN oyunlar o ON e.oyun_id = o.id
-                JOIN sahneler s ON e.sahne_id = s.id
-                WHERE (e.durum IS NULL OR e.durum != 'Oynandı')
-                ORDER BY e.tarih ASC, e.baslangic_saati ASC
-            """
-            return execute_query(query)
-        except:
-            # Eğer 'durum' kolonu yoksa hata verir, o zaman hepsini çekip Python'da süzelim
-            # veya kolon yoksa hepsi oynanmamıştır varsayalım.
-            # Geçici çözüm: Kolon yoksa sorguyu basitleştir.
-            query_fallback = """
-                SELECT e.id, e.tarih, e.baslangic_saati, o.oyun_adi, s.sahne_adi, s.sehir
-                FROM etkinlikler e
-                JOIN oyunlar o ON e.oyun_id = o.id
-                JOIN sahneler s ON e.sahne_id = s.id
-                ORDER BY e.tarih ASC
-            """
-            return execute_query(query_fallback)
+                    SELECT e.id, e.tarih, e.baslangic_saati, o.oyun_adi, s.sahne_adi, s.sehir, e.durum
+                    FROM etkinlikler e
+                    JOIN oyunlar o ON e.oyun_id = o.id
+                    JOIN sahneler s ON e.sahne_id = s.id
+                    WHERE (e.durum IS NULL OR e.durum != 'Oynandı')
+                    ORDER BY e.tarih ASC, e.baslangic_saati ASC
+                """
+            rows = execute_query(query)
 
+            # Oyuncu isimlerini ekleyerek listeyi zenginleştir
+            results = []
+            for row in rows:
+                ev = dict(row)
+
+                # O etkinliğin oyuncularını çek
+                actors = execute_query("""
+                        SELECT k.ad_soyad FROM etkinlik_kadrosu ek
+                        JOIN kisiler k ON ek.kisi_id = k.id
+                        WHERE ek.etkinlik_id = ? AND ek.gorev = 'Oyuncu'
+                    """, (ev['id'],))
+
+                names = [a['ad_soyad'] for a in actors]
+                ev['oyuncu_listesi'] = ", ".join(names) if names else "-"
+
+                results.append(ev)
+
+            return results
+
+        except Exception as e:
+            print(f"Hata: {e}")
+            return []
     # --- OYUN TAMAMLAMA EKRANI VERİLERİ ---
     @staticmethod
     def get_event_staff_details(event_id):

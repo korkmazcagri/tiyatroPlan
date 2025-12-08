@@ -392,17 +392,35 @@ class CalendarController:
 
     @staticmethod
     def get_person_availability_status(person_id, date_str):
-        """Kişinin o tarihteki durumu: 'Müsait', 'Sahnede' veya 'Müsait Değil'."""
-        # print(f">>> [DEBUG-Helper] Availability kontrolü: ID {person_id}, Tarih {date_str}")
+        """
+        Kişinin o tarihteki durumu: 'Müsait', 'Sahnede' veya 'Müsait Değil'.
+        Öncelik Sırası:
+        1. O gün zaten atanmış bir oyunu var mı? -> Sahnede
+        2. İstisna tablosunda kaydı var mı? -> Müsait Değil / Raporlu vb.
+        3. Haftalık rutini ne diyor? -> Müsait / Sahnede
+        """
         from datetime import datetime
 
-        # 1. İstisna Kontrolü
+        # --- [YENİ KURAL 1] TAKVİM KONTROLÜ ---
+        # Eğer kişi o tarihli bir etkinliğin kadrosundaysa (Oyuncu veya Reji), direkt "Sahnede" döndür.
+        check_event_query = """
+                SELECT e.id FROM etkinlikler e
+                JOIN etkinlik_kadrosu ek ON e.id = ek.etkinlik_id
+                WHERE ek.kisi_id = ? AND e.tarih = ?
+            """
+        has_event = execute_query(check_event_query, (person_id, date_str))
+
+        if has_event:
+            return "Sahnede"
+        # --------------------------------------
+
+        # 2. İstisna Kontrolü (Manuel eklenen izinler)
         exc_query = "SELECT aciklama FROM musaitlik_istisna WHERE kisi_id = ? AND tarih = ?"
         exc_res = execute_query(exc_query, (person_id, date_str))
         if exc_res:
             return "Müsait Değil"
 
-        # 2. Haftalık Rutin Kontrolü
+        # 3. Haftalık Rutin Kontrolü
         try:
             dt = datetime.strptime(date_str, "%Y-%m-%d")
             day_idx = dt.weekday()  # 0: Pzt ... 6: Paz
@@ -416,7 +434,6 @@ class CalendarController:
             print(f">>> [DEBUG-Helper HATA] Tarih formatı hatası olabilir: {e}")
 
         return "Müsait"
-
     @staticmethod
     def assign_actor_to_event(event_id, person_id):
         from app.core.db import get_db_connection  # Importu garantiye al

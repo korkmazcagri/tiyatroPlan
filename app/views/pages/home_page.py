@@ -21,32 +21,55 @@ class FinalizeDialog(QDialog):
         self.setFixedWidth(600)  # Biraz genişlettik
 
         # --- STİL DOSYASI ---
+        # --- STİL DOSYASI (TAM SİYAH TASARIM) ---
         self.setStyleSheet("""
-            QDialog { background-color: #1e1e1e; color: white; border: 2px solid #FFD700; }
-            QLabel { color: white; font-size: 14px; }
+                    QDialog { 
+                        background-color: #121212; /* Tam Siyah Arka Plan */
+                        color: white; 
+                        border: 2px solid #FFD700; 
+                    }
+                    QLabel { 
+                        color: #e0e0e0; /* Açık Gri Yazı */
+                        font-size: 14px; 
+                    }
 
-            /* SAYI KUTUSU TASARIMI (Daha belirgin) */
-            QDoubleSpinBox { 
-                background-color: #111;         
-                color: #2ecc71;                 
-                border: 1px solid #555;         
-                border-radius: 4px; 
-                padding: 8px; 
-                font-weight: bold;
-                font-size: 15px;
-            }
-            QDoubleSpinBox:focus {
-                border: 1px solid #FFD700;      
-                background-color: #000;
-            }
+                    /* SAYI KUTUSU TASARIMI (Siyah) */
+                    QDoubleSpinBox { 
+                        background-color: #000000;      
+                        color: #2ecc71;                 
+                        border: 1px solid #444;         
+                        border-radius: 4px; 
+                        padding: 8px; 
+                        font-weight: bold;
+                        font-size: 15px;
+                    }
+                    QDoubleSpinBox:focus {
+                        border: 1px solid #FFD700;      
+                        background-color: #111;
+                    }
 
-            QPushButton { 
-                background-color: #FFD700; color: black; font-weight: bold; 
-                padding: 10px; border-radius: 5px; 
-            }
-            QPushButton:hover { background-color: #e6c200; }
-        """)
+                    /* BUTONLAR */
+                    QPushButton { 
+                        background-color: #FFD700; 
+                        color: black; 
+                        font-weight: bold; 
+                        padding: 10px; 
+                        border-radius: 5px; 
+                    }
+                    QPushButton:hover { background-color: #e6c200; }
 
+                    /* SCROLL BAR (Kaydırma Çubuğu) */
+                    QScrollBar:vertical {
+                        border: none;
+                        background: #1e1e1e;
+                        width: 8px;
+                    }
+                    QScrollBar::handle:vertical {
+                        background: #444;
+                        min-height: 20px;
+                        border-radius: 4px;
+                    }
+                """)
         self.init_ui()
 
     def init_ui(self):
@@ -197,12 +220,12 @@ class HomePage(QWidget):
         layout.addWidget(lbl_table_title)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(6)  # +1 Buton Sütunu
-        self.table.setHorizontalHeaderLabels(["Tarih", "Saat", "Oyun", "Şehir", "Sahne", "İşlem"])
+        self.table.setColumnCount(7)  # +1 Buton Sütunu
+        self.table.setHorizontalHeaderLabels(["Tarih", "Saat", "Oyun", "Oyuncular" ,"Şehir", "Sahne", "İşlem"])
 
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Fixed)
-        self.table.setColumnWidth(5, 120)  # Buton sütununu sabitledik
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Fixed)
+        self.table.setColumnWidth(6, 120)  # Buton sütununu sabitledik
 
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -211,14 +234,32 @@ class HomePage(QWidget):
         self.table.setShowGrid(False)
         self.table.setAlternatingRowColors(True)
 
+        # --- TABLO STİLİ (DARK MODE) ---
         self.table.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e1e1e; color: #ddd; border: 1px solid #333; border-radius: 8px; padding: 5px;
-            }
-            QTableWidget::item { padding: 8px; border-bottom: 1px solid #2c2c2c; }
-            QHeaderView::section { background-color: #2c2c2c; color: #FFD700; font-weight: bold; padding: 8px; border: none; }
-        """)
-
+                    QTableWidget {
+                        background-color: #121212; /* Tam Siyah Zemin */
+                        color: #e0e0e0;            /* Açık Gri Yazı */
+                        border: 1px solid #333; 
+                        border-radius: 8px; 
+                        padding: 5px;
+                        alternate-background-color: #1a1a1a; /* Satırlar arası hafif ton farkı */
+                    }
+                    QTableWidget::item { 
+                        padding: 8px; 
+                        border-bottom: 1px solid #222; /* Satır altı çizgisi */
+                    }
+                    QTableWidget::item:selected {
+                        background-color: #333; /* Seçili satır */
+                    }
+                    QHeaderView::section { 
+                        background-color: #000000; /* Simsiyah Başlık */
+                        color: #FFD700;            /* Sarı Başlık Yazısı */
+                        font-weight: bold; 
+                        padding: 8px; 
+                        border: none;
+                        border-bottom: 2px solid #FFD700;
+                    }
+                """)
         layout.addWidget(self.table)
         self.load_data()
 
@@ -251,30 +292,39 @@ class HomePage(QWidget):
 
         for row, data in enumerate(events):
             self.table.insertRow(row)
-
-            # --- [DÜZELTME] SATIR YÜKSEKLİĞİNİ AYARLA ---
-            # Butonun kesilmemesi için satırı genişletiyoruz (Örn: 50px)
-            self.table.setRowHeight(row, 50)
-            # --------------------------------------------
+            self.table.setRowHeight(row, 55)
 
             qdate = QDate.fromString(data['tarih'], "yyyy-MM-dd")
             date_str = qdate.toString("dd.MM.yyyy")
 
+            # Sütun 0: Tarih
             self.table.setItem(row, 0, QTableWidgetItem(date_str))
+            # Sütun 1: Saat
             self.table.setItem(row, 1, QTableWidgetItem(data['baslangic_saati']))
 
+            # Sütun 2: Oyun
             item_game = QTableWidgetItem(data['oyun_adi'])
             item_game.setFont(QFont("Arial", 10, QFont.Bold))
             item_game.setForeground(QColor("#FFD700"))
             self.table.setItem(row, 2, item_game)
 
-            self.table.setItem(row, 3, QTableWidgetItem(data['sehir']))
-            self.table.setItem(row, 4, QTableWidgetItem(data['sahne_adi']))
+            # --- [YENİ] Sütun 3: Oyuncular ---
+            item_actors = QTableWidgetItem(data['oyuncu_listesi'])
+            item_actors.setForeground(QColor("#aaaaaa"))  # Biraz daha sönük gri
+            item_actors.setToolTip(data['oyuncu_listesi'])  # Mouse ile üzerine gelince tamamı görünsün
+            self.table.setItem(row, 3, item_actors)
+            # ---------------------------------
 
-            # --- BUTON TASARIMI ---
+            # Sütun 4: Şehir (Eskiden 3'tü, kaydırdık)
+            self.table.setItem(row, 4, QTableWidgetItem(data['sehir']))
+
+            # Sütun 5: Sahne (Eskiden 4'tü, kaydırdık)
+            self.table.setItem(row, 5, QTableWidgetItem(data['sahne_adi']))
+
+            # Sütun 6: İşlem Butonu
             btn_complete = QPushButton("✔️ Oynandı")
             btn_complete.setCursor(Qt.PointingHandCursor)
-            btn_complete.setFixedHeight(30)  # Buton yüksekliği
+            btn_complete.setFixedHeight(32)
             btn_complete.setStyleSheet("""
                 QPushButton {
                     background-color: #27ae60; 
@@ -282,6 +332,7 @@ class HomePage(QWidget):
                     font-weight: bold;
                     border-radius: 4px; 
                     font-size: 11px;
+                    border: none;
                 }
                 QPushButton:hover { background-color: #2ecc71; }
             """)
@@ -290,11 +341,10 @@ class HomePage(QWidget):
 
             container = QWidget()
             layout = QHBoxLayout(container)
-            layout.setContentsMargins(5, 5, 5, 5)  # Buton etrafına boşluk
+            layout.setContentsMargins(5, 5, 5, 5)
             layout.setAlignment(Qt.AlignCenter)
             layout.addWidget(btn_complete)
-            self.table.setCellWidget(row, 5, container)
-
+            self.table.setCellWidget(row, 6, container)  # İndeks 6 oldu
     def open_finalize_dialog(self, event_id, event_name):
         dialog = FinalizeDialog(self, event_id, event_name)
         if dialog.exec_():

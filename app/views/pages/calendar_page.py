@@ -728,7 +728,7 @@ class CalendarPage(QWidget):
             self.refresh_calendar()  # Takvimi yenile ki dolanları görelim
 
     def export_to_pdf(self):
-        import os  # Dosya yolları ve açma işlemi için gerekli
+        import os
 
         # 1. Verileri Hazırla
         year = self.current_date.year()
@@ -738,7 +738,6 @@ class CalendarPage(QWidget):
             1: "OCAK", 2: "ŞUBAT", 3: "MART", 4: "NİSAN", 5: "MAYIS", 6: "HAZİRAN",
             7: "TEMMUZ", 8: "AĞUSTOS", 9: "EYLÜL", 10: "EKİM", 11: "KASIM", 12: "ARALIK"
         }
-
         tr_days = {
             1: "PAZARTESİ", 2: "SALI", 3: "ÇARŞAMBA", 4: "PERŞEMBE", 5: "CUMA", 6: "CUMARTESİ", 7: "PAZAR"
         }
@@ -750,10 +749,10 @@ class CalendarPage(QWidget):
             QMessageBox.warning(self, "Uyarı", "Bu ay için kayıtlı etkinlik bulunamadı.")
             return
 
-        # Sıralama: Tarih -> Şehir -> Saat
+        # Sıralama
         events.sort(key=lambda x: (x['tarih'], x['sehir'], x['baslangic_saati']))
 
-        # 2. Dosya Kaydetme (Hedef: Masaüstü)
+        # 2. Dosya Kaydetme
         desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
         default_filename = os.path.join(desktop_path, f"{month_name.replace(' ', '_')}_Programi.pdf")
 
@@ -764,56 +763,80 @@ class CalendarPage(QWidget):
         if not filename:
             return
 
-            # 3. HTML Tasarımı (Net Tablo Görünümü)
+        # 3. HTML Tasarımı
         html_content = f"""
         <html>
         <head>
             <style>
-                body {{ font-family: Arial, sans-serif; font-size: 10px; color: #000; }}
-                h1 {{ text-align: center; margin-bottom: 10px; font-size: 18px; text-transform: uppercase; }}
-
-                /* Gün Başlığı */
-                .day-header {{ 
-                    background-color: #000; 
-                    color: #fff; 
-                    padding: 8px; 
-                    font-size: 14px; 
-                    font-weight: bold; 
-                    margin-top: 25px; 
-                    border: 1px solid #000;
-                    text-align: left;
+                body {{ 
+                    font-family: Arial, sans-serif; 
+                    font-size: 10px; 
+                    color: #000; 
+                }}
+                h1 {{ 
+                    text-align: center; 
+                    margin-bottom: 20px; 
+                    font-size: 18px; 
+                    text-transform: uppercase;
                 }}
 
-                /* Tablo Ayarları */
+                /* TABLO AYARLARI */
                 table {{ 
                     width: 100%; 
-                    border-collapse: collapse; /* Çizgileri yapıştır */
-                    margin-bottom: 0px; 
+                    border-collapse: collapse; 
+                    margin-bottom: 20px; 
+                    page-break-inside: auto; 
                 }}
 
-                /* Başlıklar */
-                th {{ 
-                    background-color: #eee; 
-                    color: #000; 
-                    padding: 8px; 
-                    font-weight: bold; 
+                /* SATIR AYARLARI */
+                tr {{
+                    page-break-inside: avoid; 
+                }}
+
+                /* HÜCRE AYARLARI */
+                td, th {{
                     border: 1px solid #000; 
-                    text-align: center;
-                }}
-
-                /* Hücreler - NET ÇİZGİLER */
-                td {{ 
-                    padding: 8px; 
-                    text-align: center; 
-                    vertical-align: middle;
-                    border: 1px solid #000; /* İnce Siyah Çizgi */
+                    padding: 0px; 
                     color: #000;
+                    vertical-align: middle; /* Tek satır olacağı için tekrar ortalayabiliriz */
                 }}
 
-                /* Şehir Değişiminde KALIN Çizgi */
-                /* border-top kullanarak değişimin olduğu satırın üstünü kalınlaştırıyoruz */
-                .city-divider td {{
-                    border-top: 3px solid #000 !important; 
+                /* BÖLÜNEMEZ KUTU */
+                .nobreak {{
+                    page-break-inside: avoid;
+                    display: block;
+                    padding: 6px; 
+                    width: 100%;
+                }}
+
+                /* İçerik Hizalaması */
+                .cell-content {{
+                    /* Tek satır olduğu için ekstra paddinge gerek yok */
+                }}
+
+                /* BAŞLIK HÜCRELERİ */
+                .col-header {{
+                    background-color: #ddd; 
+                    font-weight: bold;
+                    padding: 6px; 
+                    vertical-align: middle;
+                }}
+
+                /* GÜN BAŞLIĞI */
+                .date-header {{
+                    background-color: #000; 
+                    color: #fff;            
+                    font-size: 12px;
+                    font-weight: bold;
+                    text-align: left;
+                    padding: 8px;
+                    border: 1px solid #000;
+                    vertical-align: middle;
+                }}
+
+                .game-title {{
+                    font-weight: bold;
+                    text-transform: uppercase;
                 }}
             </style>
         </head>
@@ -821,26 +844,28 @@ class CalendarPage(QWidget):
             <h1>🎭 {month_name} OYUN PROGRAMI</h1>
         """
 
-        # --- Gruplama ve Döngü ---
         from itertools import groupby
 
         for date_str, day_events_iter in groupby(events, key=lambda x: x['tarih']):
             day_events = list(day_events_iter)
 
-            # Gün Başlığı
             date_obj = QDate.fromString(date_str, "yyyy-MM-dd")
             formatted_date = date_obj.toString("dd.MM.yyyy")
             day_name = tr_days[date_obj.dayOfWeek()]
 
-            html_content += f"""
-            <div class='day-header'>{formatted_date} - {day_name}</div>
-            <table>
+            # --- TABLO BAŞLANGICI ---
+            html_content += """
+            <table border="1" cellspacing="0" cellpadding="0">
                 <thead>
                     <tr>
+                        <th colspan="4" class="date-header">
+                            """ + f"{formatted_date} - {day_name}" + """
+                        </th>
+                    </tr>
+                    <tr class="col-header">
                         <th width="10%">SAAT</th>
-                        <th width="25%">ŞEHİR / SAHNE</th>
-                        <th width="35%">OYUN ADI</th>
-                        <th width="30%">KADRO</th>
+                        <th width="30%">ŞEHİR / SAHNE</th> <th width="35%">OYUN ADI</th>
+                        <th width="25%">KADRO</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -850,26 +875,29 @@ class CalendarPage(QWidget):
 
             for ev in day_events:
                 current_city = ev['sehir'].strip()
-                row_class = ""
-
-                # Eğer şehir değiştiyse ve bu tablonun ilk satırı değilse -> Kalın Çizgi
-                if previous_city and current_city != previous_city:
-                    row_class = "city-divider"
-
                 oyuncular = ev.get('oyuncu_listesi', '-')
 
                 html_content += f"""
-                <tr class="{row_class}">
-                    <td style="font-weight:bold;">{ev['baslangic_saati']}</td>
-                    <td style="text-align:left;">
-                        <b>{ev['sehir']}</b><br>
-                        <span style="font-size:9px;">{ev['sahne_adi']}</span>
+                <tr>
+                    <td>
+                        <div class="nobreak cell-content" style="font-weight:bold; text-align:center;">
+                            {ev['baslangic_saati']}
+                        </div>
                     </td>
-                    <td style="font-weight:bold; text-transform: uppercase;">
-                        {ev['oyun_adi']}
+                    <td>
+                        <div class="nobreak cell-content" style="text-align:left; font-size:10px;">
+                            <b>{ev['sehir']}</b> / {ev['sahne_adi']}
+                        </div>
                     </td>
-                    <td style="text-align:left; font-size:10px;">
-                        {oyuncular}
+                    <td>
+                        <div class="nobreak cell-content game-title" style="text-align:center;">
+                            {ev['oyun_adi']}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="nobreak cell-content" style="text-align:left; font-size:9px;">
+                            {oyuncular}
+                        </div>
                     </td>
                 </tr>
                 """
@@ -885,7 +913,7 @@ class CalendarPage(QWidget):
         </html>
         """
 
-        # 4. Yazdırma
+        # 4. Yazdırma İşlemi
         document = QTextDocument()
         document.setHtml(html_content)
 
@@ -897,9 +925,7 @@ class CalendarPage(QWidget):
 
         document.print_(printer)
 
-        # 5. Dosyayı Otomatik Aç
         try:
-            os.startfile(filename)  # Windows için dosyayı açar
+            os.startfile(filename)
         except Exception as e:
-            print(f"Dosya açılamadı: {e}")
             QMessageBox.information(self, "Başarılı", f"PDF kaydedildi:\n{filename}")
