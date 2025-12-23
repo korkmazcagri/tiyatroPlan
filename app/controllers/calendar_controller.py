@@ -23,37 +23,23 @@ class CalendarController:
         conn.commit()
         conn.close()
 
-    # --- 1. VERİ ÇEKME İŞLEMLERİ ---
     @staticmethod
     def get_events_for_month(year, month):
-        month_str = f"{year}-{month:02d}"
-
-        # --- DÜZELTME BURADA: ', s.sehir' EKLENDİ ---
         query = """
-                SELECT e.id, e.tarih, e.baslangic_saati, o.id as oyun_id, o.oyun_adi, s.sahne_adi, s.sehir
+                SELECT e.*, o.oyun_adi, s.sahne_adi, s.sehir,
+                (SELECT GROUP_CONCAT(k.ad_soyad, ', ') 
+                 FROM etkinlik_kadrosu ek 
+                 JOIN kisiler k ON ek.kisi_id = k.id 
+                 WHERE ek.etkinlik_id = e.id AND ek.gorev = 'Oyuncu') as oyuncu_listesi
                 FROM etkinlikler e
                 JOIN oyunlar o ON e.oyun_id = o.id
                 JOIN sahneler s ON e.sahne_id = s.id
-                WHERE strftime('%Y-%m', e.tarih) = ?
-                ORDER BY e.tarih ASC, e.baslangic_saati ASC
+                WHERE strftime('%Y', e.tarih) = ? AND strftime('%m', e.tarih) = ?
+                ORDER BY e.tarih, e.baslangic_saati
             """
-        # ---------------------------------------------
-
-        rows = execute_query(query, (month_str,))
-
-        events = []
-        for row in rows:
-            ev = dict(row)
-            actors = execute_query("""
-                    SELECT k.ad_soyad FROM etkinlik_kadrosu ek 
-                    JOIN kisiler k ON ek.kisi_id = k.id 
-                    WHERE ek.etkinlik_id = ? AND ek.gorev = 'Oyuncu'
-                """, (ev['id'],))
-
-            names = [a['ad_soyad'] for a in actors]
-            ev['oyuncu_listesi'] = ", ".join(names) if names else "Belirlenmedi"
-            events.append(ev)
-        return events
+        # Ayı formatlayalım (Örn: 5 -> '05')
+        m_str = str(month).zfill(2)
+        return execute_query(query, (str(year), m_str))
     @staticmethod
     def get_event_full_detail(event_id):
         res = execute_query("SELECT * FROM etkinlikler WHERE id = ?", (event_id,))
@@ -66,15 +52,17 @@ class CalendarController:
         return [r['kisi_id'] for r in rows]
 
     # --- 2. KAYIT (INSERT/UPDATE) İŞLEMLERİ ---
+        # --- 2. KAYIT (INSERT/UPDATE) İŞLEMLERİ ---
     @staticmethod
-    def add_event_with_cast(oyun_id, sahne_id, tarih, saat, notlar, oyuncu_ids, reji_ids):
+    def add_event_with_cast(oyun_id, sahne_id, tarih, saat, notlar, oyuncu_ids, reji_ids, turne_ekibi_id=None):
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
+            # turne_ekibi_id sütunu sorguya eklendi
             cursor.execute("""
-                INSERT INTO etkinlikler (oyun_id, sahne_id, tarih, baslangic_saati, notlar) 
-                VALUES (?, ?, ?, ?, ?)
-            """, (oyun_id, sahne_id, tarih, saat, notlar))
+                INSERT INTO etkinlikler (oyun_id, sahne_id, tarih, baslangic_saati, notlar, turne_ekibi_id) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (oyun_id, sahne_id, tarih, saat, notlar, turne_ekibi_id))
 
             event_id = cursor.lastrowid
 
@@ -87,25 +75,27 @@ class CalendarController:
                                (event_id, p_id, 'Reji'))
 
             conn.commit()
-            print(f"✅ Etkinlik Eklendi: ID {event_id}")
-
         except Exception as e:
             conn.rollback()
-            print(f"❌ Ekleme Hatası: {e}")
+            raise e  # Hatayı arayüze fırlatması için
         finally:
             conn.close()
 
     @staticmethod
-    def update_event_with_cast(event_id, oyun_id, sahne_id, tarih, saat, notlar, oyuncu_ids, reji_ids):
+
+    def update_event_with_cast(event_id, oyun_id, sahne_id, tarih, saat, notlar, oyuncu_ids, reji_ids,
+                               turne_ekibi_id=None):
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
+            # turne_ekibi_id güncellemesi sorguya eklendi
             cursor.execute("""
                 UPDATE etkinlikler 
-                SET oyun_id=?, sahne_id=?, tarih=?, baslangic_saati=?, notlar=? 
+                SET oyun_id=?, sahne_id=?, tarih=?, baslangic_saati=?, notlar=?, turne_ekibi_id=? 
                 WHERE id=?
-            """, (oyun_id, sahne_id, tarih, saat, notlar, event_id))
+            """, (oyun_id, sahne_id, tarih, saat, notlar, turne_ekibi_id, event_id))
 
+            # Eski kadroyu silip yenilerini ekleme mantığı
             cursor.execute("DELETE FROM etkinlik_kadrosu WHERE etkinlik_id = ?", (event_id,))
 
             for p_id in oyuncu_ids:
@@ -117,14 +107,11 @@ class CalendarController:
                                (event_id, p_id, 'Reji'))
 
             conn.commit()
-            print(f"✅ Etkinlik Güncellendi: ID {event_id}")
-
         except Exception as e:
             conn.rollback()
-            print(f"❌ Güncelleme Hatası: {e}")
+            raise e
         finally:
             conn.close()
-
     @staticmethod
     def delete_event(event_id):
         conn = get_db_connection()
@@ -468,3 +455,4 @@ class CalendarController:
             print(f"Status Update Error: {e}")
         finally:
             conn.close()
+

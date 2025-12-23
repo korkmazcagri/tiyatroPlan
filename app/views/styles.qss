@@ -213,3 +213,17 @@ QCalendarWidget QWidget#qt_calendar_navigationbar {
 QCalendarWidget QToolButton {
     color: #FFD700;
     background-color: transparent;
+
+    QListWidget {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 5px;
+}
+QListWidget::item {
+    padding: 5px;
+    border-bottom: 1px solid #222;
+}
+QListWidget::item:hover {
+    background-color: #2c2c2c;
+}

@@ -11,6 +11,7 @@ from app.views.pages.calendar_page import CalendarPage
 from app.views.pages.plays_page import PlaysPage
 from app.views.pages.actors_page import ActorsPage
 from app.views.pages.venues_page import VenuesPage
+from app.views.pages.tour_page import TourPage
 # --- YENİ SAYFA IMPORT EDİLDİ ---
 from app.views.pages.payment_page import PaymentPage
 # --------------------------------
@@ -59,7 +60,7 @@ class MainWindow(QMainWindow):
         self.create_menu_item("Oyuncu ve Teknik", 3) # Index 3
         self.create_menu_item("Sahneler", 4)        # Index 4
         self.create_menu_item("Ödemeler", 5)        # Index 5 (YENİ EKLENDİ)
-
+        self.create_menu_item("Turne Ekipleri", 6)
         self.sidebar_layout.addStretch()
 
         # Versiyon Bilgisi
@@ -78,7 +79,8 @@ class MainWindow(QMainWindow):
             PlaysPage(),       # 2
             ActorsPage(),      # 3
             VenuesPage(),      # 4
-            PaymentPage()      # 5 (YENİ EKLENDİ)
+            PaymentPage()   ,
+            TourPage()
         ]
 
         for page in self.pages:
