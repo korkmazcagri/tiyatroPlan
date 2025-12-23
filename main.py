@@ -10,13 +10,33 @@ from PyQt5.QtGui import QPixmap, QFont, QColor
 from PyQt5.QtCore import Qt
 
 # Dosya yollarını düzgün yönetmek için
-basedir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(basedir)
+# --- YOL YÖNETİMİ (Kritik Bölüm) ---
+if getattr(sys, 'frozen', False):
+    # Uygulama EXE olarak çalışıyor
+    basedir = os.path.dirname(sys.executable)
+    # PyInstaller _internal klasörünü kütüphane aramasına ekle
+    internal_path = os.path.join(basedir, "_internal")
+    if os.path.exists(internal_path):
+        sys.path.append(internal_path)
+else:
+    # Uygulama Python üzerinden (PyCharm) çalışıyor
+    basedir = os.path.dirname(os.path.abspath(__file__))
 
+# Uygulama kök dizinini sys.path'e ekle (app modülünün bulunması için)
+if basedir not in sys.path:
+    sys.path.append(basedir)
+
+# --- IMPORT İŞLEMLERİ ---
 try:
+    # Artik 'app' klasörünü basedir sayesinde her koşulda bulacaktır
     from app.views.main_window import MainWindow
 except ImportError as e:
-    print(f"HATA: Modül bulunamadı. Detay: {e}")
+    # Hata varsa burada durdurmalıyız, yoksa aşağıda 'MainWindow is not defined' alırsın
+    print(f"Kritik Hata: Modüller yüklenemedi! Detay: {e}")
+    # Eğer bir UI varsa kullanıcıya göstermek iyidir
+    from PyQt5.QtWidgets import QApplication, QMessageBox
+    app = QApplication(sys.argv)
+    QMessageBox.critical(None, "Sistem Hatası", f"Uygulama dosyaları eksik veya hatalı:\n{e}")
     sys.exit(1)
 
 DB_NAME = os.path.join(basedir, "tiyatrodb.db")
@@ -134,11 +154,7 @@ def perform_auto_backup():
             pass
 
 
-def init_db_local():
-    if not os.path.exists(DB_NAME):
-        temp_app = QApplication.instance() or QApplication(sys.argv)
-        QMessageBox.critical(None, "Hata", f"Veritabanı bulunamadı:\n{DB_NAME}")
-        sys.exit(1)
+
 
     conn = sqlite3.connect(DB_NAME)
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -170,7 +186,6 @@ def main():
     app.processEvents()
 
     # 2. Hazırlık
-    init_db_local()
     perform_auto_backup()
 
     time.sleep(1)
